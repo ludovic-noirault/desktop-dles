@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: read
     outputs:
       version: ${{ steps.release.outputs.version }}
       release_id: ${{ steps.release.outputs.release_id }}
