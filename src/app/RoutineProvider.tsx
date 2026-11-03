@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useReducer,
-  useRef,
   useState,
 } from "react";
 import { initRoutine, routineReducer } from "../routine/routine";
@@ -20,6 +19,11 @@ let dbPromise: Promise<Db> | undefined;
 export const getDb = (): Promise<Db> => {
   dbPromise ??= openDb();
   return dbPromise;
+};
+
+const loadAll = async (db: Db) => {
+  const [games, shuffle] = await Promise.all([listGames(db), getShuffle(db)]);
+  return { games, shuffle };
 };
 
 type Loaded = { games: Game[]; shuffle: boolean; initial: RoutineState };
@@ -48,10 +52,7 @@ export function RoutineProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       const db = await getDb();
-      const [games, shuffle] = await Promise.all([
-        listGames(db),
-        getShuffle(db),
-      ]);
+      const { games, shuffle } = await loadAll(db);
       // StrictMode runs this twice; the cancelled run must not shuffle again.
       if (!cancelled) {
         setLoaded({ games, shuffle, initial: initRoutine(games, shuffle) });
@@ -74,23 +75,15 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
   const [state, dispatch] = useReducer(routineReducer, loaded.initial);
   const [games, setGames] = useState(loaded.games);
   const [shuffle, setShuffle] = useState(loaded.shuffle);
-  // The launch value drives the routine; `shuffle` is the DB value for the checkbox.
-  const launchShuffle = useRef(loaded.shuffle);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
-    const [nextGames, nextShuffle] = await Promise.all([
-      listGames(db),
-      getShuffle(db),
-    ]);
-    setGames(nextGames);
-    setShuffle(nextShuffle);
-    dispatch({
-      type: "sync",
-      games: nextGames,
-      shuffle: launchShuffle.current,
-    });
-  }, []);
+    const next = await loadAll(db);
+    setGames(next.games);
+    setShuffle(next.shuffle);
+    // `sync` gets the launch value; the `shuffle` state mirrors the DB for the checkbox.
+    dispatch({ type: "sync", games: next.games, shuffle: loaded.shuffle });
+  }, [loaded.shuffle]);
 
   return (
     <RoutineContext.Provider

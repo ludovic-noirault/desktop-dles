@@ -11,7 +11,7 @@ export type PanelBounds = {
 // so each invoke starts only after the previous one settled.
 let queue: Promise<unknown> = Promise.resolve();
 const ordered = <T>(run: () => Promise<T>): Promise<T> => {
-  const next = queue.then(run, run);
+  const next = queue.then(run);
   queue = next.catch(() => {});
   return next;
 };

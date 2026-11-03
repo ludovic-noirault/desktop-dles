@@ -3,6 +3,7 @@ import { getDb, useRoutine } from "../app/RoutineProvider";
 import { closeGame } from "../games/gameViews";
 import { isValidGameUrl, moveGame } from "../routine/routine";
 import type { Game } from "../routine/types";
+import type { Db } from "../storage/db";
 import {
   addGame,
   deleteGame,
@@ -11,8 +12,6 @@ import {
   updateGame,
 } from "../storage/gamesRepo";
 import { strings } from "../strings";
-
-const log = (err: unknown) => console.error(err);
 
 export function SettingsPage() {
   const { games, shuffle, refresh } = useRoutine();
@@ -32,9 +31,7 @@ export function SettingsPage() {
   // The ref blocks a second click in the same tick, before `busy` re-renders.
   const inFlight = useRef(false);
 
-  const write = async (
-    change: (db: Awaited<ReturnType<typeof getDb>>) => Promise<void>,
-  ): Promise<boolean> => {
+  const write = async (change: (db: Db) => Promise<void>): Promise<boolean> => {
     if (inFlight.current) return false;
     inFlight.current = true;
     setBusy(true);
@@ -43,7 +40,7 @@ export function SettingsPage() {
       await refresh();
       return true;
     } catch (err) {
-      log(err);
+      console.error(err);
       return false;
     } finally {
       inFlight.current = false;
@@ -81,7 +78,7 @@ export function SettingsPage() {
     const urlChanged = editUrl.trim() !== g.url;
     write(async (db) => {
       await updateGame(db, g.id, editName, editUrl);
-      if (urlChanged) await closeGame(g.id).catch(log);
+      if (urlChanged) await closeGame(g.id).catch(console.error);
     }).then((ok) => {
       if (ok) stopEdit();
     });
@@ -173,7 +170,7 @@ export function SettingsPage() {
                   onClick={() =>
                     write(async (db) => {
                       await deleteGame(db, g.id);
-                      await closeGame(g.id).catch(log);
+                      await closeGame(g.id).catch(console.error);
                     })
                   }
                 >

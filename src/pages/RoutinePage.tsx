@@ -10,8 +10,6 @@ import {
 } from "../games/gameViews";
 import { strings } from "../strings";
 
-const log = (err: unknown) => console.error(err);
-
 function boundsOf(el: HTMLElement): PanelBounds {
   const { x, y, width, height } = el.getBoundingClientRect();
   return { x, y, width, height };
@@ -27,28 +25,27 @@ export function RoutinePage() {
   // Never awaited: the native webview loads on its own.
   useEffect(() => {
     if (!game || !panelRef.current) {
-      hideGames().catch(log);
+      hideGames().catch(console.error);
       return;
     }
-    showGame(game.id, game.url, boundsOf(panelRef.current)).catch(log);
+    showGame(game.id, game.url, boundsOf(panelRef.current)).catch(
+      console.error,
+    );
   }, [game]);
 
   // Separate from the effect above so switching games does not hide first.
   // gameViews runs commands in call order, so under StrictMode the last show wins.
   useEffect(() => {
     const panel = panelRef.current;
-    const sync = () => {
-      if (panelRef.current)
-        setGameBounds(boundsOf(panelRef.current)).catch(log);
-    };
-    const observer = new ResizeObserver(sync);
-    if (panel) observer.observe(panel);
-    return () => {
-      observer.disconnect();
-    };
+    if (!panel) return;
+    const observer = new ResizeObserver(() =>
+      setGameBounds(boundsOf(panel)).catch(console.error),
+    );
+    observer.observe(panel);
+    return () => observer.disconnect();
   }, []);
 
-  useEffect(() => () => void hideGames().catch(log), []);
+  useEffect(() => () => void hideGames().catch(console.error), []);
 
   if (!game) {
     return (
@@ -88,7 +85,7 @@ export function RoutinePage() {
           <span>{strings.routine.position(state.current + 1, total)}</span>
           <button
             type="button"
-            onClick={() => reloadGame(game.id, game.url).catch(log)}
+            onClick={() => reloadGame(game.id, game.url).catch(console.error)}
           >
             {strings.routine.reload}
           </button>
