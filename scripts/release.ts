@@ -1,17 +1,18 @@
 /// <reference types="node" />
 import { readFileSync } from "node:fs";
 
-export type BranchType =
-  | "feat"
-  | "fix"
-  | "docs"
-  | "chore"
-  | "refactor"
-  | "test"
-  | "ci";
+const TYPES = [
+  "feat",
+  "fix",
+  "docs",
+  "chore",
+  "refactor",
+  "test",
+  "ci",
+] as const;
+export type BranchType = (typeof TYPES)[number];
 
-const BRANCH =
-  /^(feat|fix|docs|chore|refactor|test|ci)\/[a-z0-9][a-z0-9._/-]*$/;
+const BRANCH = new RegExp(`^(${TYPES.join("|")})/[a-z0-9][a-z0-9._/-]*$`);
 const TAG = /^v(\d+)\.(\d+)\.(\d+)$/;
 
 export function branchType(ref: string): BranchType | null {
@@ -25,10 +26,9 @@ export function nextVersion(type: BranchType, tags: string[]): string | null {
   for (const tag of tags) {
     const match = TAG.exec(tag);
     if (!match) continue;
-    const version = match.slice(1).map(Number);
-    const firstDiff = version.findIndex((n, i) => n !== latest[i]);
-    if (firstDiff !== -1 && version[firstDiff] > latest[firstDiff])
-      latest = version;
+    const v = match.slice(1).map(Number);
+    if ((v[0] - latest[0] || v[1] - latest[1] || v[2] - latest[2]) > 0)
+      latest = v;
   }
   const [major, minor, patch] = latest;
   return type === "feat"
@@ -40,7 +40,7 @@ function main(command: string | undefined, ref: string | undefined): number {
   const type = branchType(ref ?? "");
   if (!type) {
     console.error(
-      `Branch "${ref ?? ""}" must be <type>/<name>, with type one of: feat, fix, docs, chore, refactor, test, ci`,
+      `Branch "${ref ?? ""}" must be <type>/<name>, with type one of: ${TYPES.join(", ")}`,
     );
     return 1;
   }
