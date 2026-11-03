@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reload-game"
+description = "Enables the reload_game command without any pre-configured scope."
+commands.allow = ["reload_game"]
+
+[[permission]]
+identifier = "deny-reload-game"
+description = "Denies the reload_game command without any pre-configured scope."
+commands.deny = ["reload_game"]

@@ -5,6 +5,11 @@
   "webviews": ["ui"],
   "permissions": [
     "core:default",
+    "allow-show-game",
+    "allow-set-game-bounds",
+    "allow-hide-games",
+    "allow-reload-game",
+    "allow-close-game",
     "sql:default",
     "sql:allow-load",
     "sql:allow-select",
