@@ -50,7 +50,7 @@
     - `check-branch <ref>`: exit 0 when valid, else print `Branch "<ref>" must be <type>/<name>, with type one of: feat, fix, docs, chore, refactor, test, ci` to stderr and exit 1.
     - `next-version <ref>`: reads tags, one per line, from stdin; prints the version or nothing; exits 1 on an invalid branch.
 
-- [ ] **Step 1: Write the failing tests in `scripts/release.test.ts`**
+- [x] **Step 1: Write the failing tests in `scripts/release.test.ts`**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -98,16 +98,16 @@ describe("nextVersion", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `pnpm test scripts/release.test.ts`
 Expected: FAIL, cannot resolve `./release`.
 
-- [ ] **Step 3: Implement `branchType`, `nextVersion` and the CLI in `scripts/release.ts`**
+- [x] **Step 3: Implement `branchType`, `nextVersion` and the CLI in `scripts/release.ts`**
 
 Only syntax Node can strip (no `enum`, no parameter properties). The CLI reads stdin with `readFileSync(0, "utf8")`. Add `"scripts"` to `tsconfig.json` `include` so `pnpm build` type-checks the module.
 
-- [ ] **Step 4: Run tests, type-check, lint and the CLI**
+- [x] **Step 4: Run tests, type-check, lint and the CLI**
 
 Run: `pnpm test && pnpm build && pnpm lint`
 Expected: all exit 0, 26 tests passed (17 existing + 9 new).
@@ -121,7 +121,7 @@ Expected: empty line, `exit 0`
 Run: `node scripts/release.ts check-branch feature/x; echo "exit $?"`
 Expected: the error message on stderr, `exit 1`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/release.ts scripts/release.test.ts tsconfig.json
@@ -140,20 +140,20 @@ git commit -m "feat: add release version rules"
 - Consumes: `node scripts/release.ts check-branch <ref>` (Task 1).
 - Produces: a check whose job name is `branch-name`. The branch protection of Task 5 requires it by that exact name.
 
-- [ ] **Step 1: Write `.github/workflows/branch-name.yml`**
+- [x] **Step 1: Write `.github/workflows/branch-name.yml`**
 
 Trigger: `pull_request` on `opened`, `synchronize`, `reopened`, `edited`, base branch `main`. One job `branch-name` on `ubuntu-latest`, permissions `contents: read`: `actions/checkout`, `actions/setup-node` with `node-version: 24`, then `node scripts/release.ts check-branch "$HEAD_REF"` with `HEAD_REF: ${{ github.head_ref }}` passed through `env`, never interpolated into the script (a branch name is user input).
 
-- [ ] **Step 2: Add the branch convention to `AGENTS.md` `## Conventions`**
+- [x] **Step 2: Add the branch convention to `AGENTS.md` `## Conventions`**
 
 One bullet: branches are named `<type>/<name>` with the types of the Global Constraints; nothing lands on `main` without a pull request; merging a `feat/*` pull request releases a minor version, a `fix/*` one a patch version (rules in `scripts/release.ts`).
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `pnpm lint` and, if `actionlint` is installed, `actionlint .github/workflows/branch-name.yml`
 Expected: exit 0. Without `actionlint`, note it in the report; the real check is the first pull request (Task 5).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .github/workflows/branch-name.yml AGENTS.md
@@ -171,16 +171,16 @@ git commit -m "ci: check branch names on pull requests"
 **Interfaces:**
 - Consumes: `node scripts/release.ts next-version <ref>` (Task 1).
 
-- [ ] **Step 1: Set `bundle.macOS.signingIdentity` to `"-"` in `src-tauri/tauri.conf.json`**
+- [x] **Step 1: Set `bundle.macOS.signingIdentity` to `"-"` in `src-tauri/tauri.conf.json`**
 
-- [ ] **Step 2: Prove the version override reaches the bundle, locally on macOS**
+- [x] **Step 2: Prove the version override reaches the bundle, locally on macOS**
 
 Run: `pnpm tauri build --bundles app --config '{"version":"9.9.9"}'`
 Then: `defaults read "$PWD/src-tauri/target/release/bundle/macos/Desktop Dles.app/Contents/Info" CFBundleShortVersionString`
 Expected: `9.9.9`. Also `codesign -dv "src-tauri/target/release/bundle/macos/Desktop Dles.app" 2>&1 | grep Signature` prints `Signature=adhoc`.
 If the version is not `9.9.9`, stop and report: the whole version design rests on this.
 
-- [ ] **Step 3: Write `.github/workflows/release.yml`**
+- [x] **Step 3: Write `.github/workflows/release.yml`**
 
 Trigger: `push` on `main`. Top-level `concurrency: { group: release, cancel-in-progress: false }`.
 
@@ -208,12 +208,12 @@ Job `publish` (`needs: [version, build]`, same `if`, `contents: write`):
 `gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false`.
 Because `needs` waits for every matrix leg, one failed platform keeps the release a draft.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `pnpm lint`, `(cd src-tauri && cargo test && cargo clippy -- -D warnings)`, and `actionlint` if installed.
 Expected: exit 0. Read the workflow once against Review Focus 4 and 5 and say so in the report.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .github/workflows/release.yml src-tauri/tauri.conf.json
@@ -227,14 +227,14 @@ git commit -m "ci: build and publish releases for macOS and Windows"
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Update `README.md`**
+- [x] **Step 1: Update `README.md`**
 
 - Opening paragraph: macOS and Windows, not "macOS app".
 - New `## Install` section before `## Prerequisites`: download the `.dmg` or the `.exe` from the latest GitHub release. macOS: open the app once, then System Settings > Privacy & Security > Open Anyway (ad-hoc signed, not notarized). Windows: SmartScreen shows "Windows protected your PC", click "More info" then "Run anyway" (unsigned installer).
 - New `## Releases` section after `## Checks`: merging a `feat/*` pull request into `main` releases a minor version, a `fix/*` one a patch version, other branch types release nothing; rules in `scripts/release.ts`, pipeline in `.github/workflows/release.yml`.
 - `## Prerequisites` stays the developer setup; title it so (`## Develop`) if the new section makes it ambiguous.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add README.md
@@ -251,5 +251,5 @@ Each step touches GitHub and needs Ludo's go.
 - [ ] **Step 2:** Push `feat/mvp`, open its pull request with `open-pr`, merge it. Expected: no workflow runs on `main` yet.
 - [ ] **Step 3:** Rebase `feat/release-pipeline` on `main`, push, open its pull request. Expected: the `branch-name` check passes.
 - [ ] **Step 4:** Apply the branch protection on `main` with `gh api -X PUT repos/ludovic-noirault/desktop-dles/branches/main/protection`: pull request required (0 approvals, solo repo), required status check `branch-name`, `enforce_admins: true` so not even an admin push lands alone. Show Ludo the exact payload before running it.
-- [ ] **Step 5:** Merge the pull request. Expected: the release run creates `v0.2.0`, both builds pass, the release is public with one `.dmg` and one `.exe`.
+- [ ] **Step 5:** Merge the pull request. Expected: the release run creates `v0.2.0`, both builds pass, the release is public with the `.dmg`, the `.exe` and the `.app.tar.gz` tauri-action always uploads next to the `.dmg`.
 - [ ] **Step 6:** Ludo installs and launches `v0.2.0` on macOS and on Windows, and runs the MVP checklist on Windows. Record the result in the plan.
