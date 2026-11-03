@@ -1,6 +1,6 @@
 fn main() {
-    // Declaring an app manifest makes Tauri enforce the ACL on app commands too;
-    // without it every webview, game sites included, could call them.
+    // Without an app manifest, app commands are open to any local-origin webview;
+    // declaring one makes only webviews granted by a capability (`ui`) able to call them.
     tauri_build::try_build(
         tauri_build::Attributes::new().app_manifest(tauri_build::AppManifest::new().commands(&[
             "show_game",

@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use serde::Deserialize;
 use tauri::webview::{NewWindowResponse, WebviewBuilder};
 use tauri::{
@@ -7,6 +9,10 @@ use tauri::{
 use tauri_plugin_opener::OpenerExt;
 
 const GAME_PREFIX: &str = "game-";
+
+// add_child blocks until the main thread builds the webview, so concurrent commands
+// would interleave their create/hide steps. The main thread never takes this lock.
+static VIEWS: Mutex<()> = Mutex::new(());
 
 #[derive(Deserialize)]
 pub struct PanelBounds {
@@ -52,6 +58,7 @@ pub async fn show_game(
     url: String,
     bounds: PanelBounds,
 ) -> Result<(), String> {
+    let _guard = VIEWS.lock().map_err(|e| e.to_string())?;
     let url = parse_game_url(&url)?;
     let label = game_label(id);
     if let Some(webview) = app.get_webview(&label) {
@@ -62,10 +69,12 @@ pub async fn show_game(
         let opener = app.clone();
         let builder = WebviewBuilder::new(&label, WebviewUrl::External(url)).on_new_window(
             move |url, _features| {
-                // Only https leaves the app: other schemes from an untrusted page
+                // Only web links leave the app: other schemes from an untrusted page
                 // (file:, custom handlers) must not reach the OS.
-                if url.scheme() == "https" {
-                    let _ = opener.opener().open_url(url.as_str(), None::<&str>);
+                if matches!(url.scheme(), "http" | "https")
+                    && let Err(e) = opener.opener().open_url(url.as_str(), None::<&str>)
+                {
+                    eprintln!("could not open {url} in the system browser: {e}");
                 }
                 NewWindowResponse::Deny
             },
@@ -86,6 +95,7 @@ pub async fn show_game(
 
 #[tauri::command]
 pub async fn set_game_bounds(app: AppHandle, bounds: PanelBounds) -> Result<(), String> {
+    let _guard = VIEWS.lock().map_err(|e| e.to_string())?;
     for webview in game_webviews(&app) {
         webview.set_bounds(bounds.rect()).map_err(|e| e.to_string())?;
     }
@@ -94,6 +104,7 @@ pub async fn set_game_bounds(app: AppHandle, bounds: PanelBounds) -> Result<(), 
 
 #[tauri::command]
 pub async fn hide_games(app: AppHandle) -> Result<(), String> {
+    let _guard = VIEWS.lock().map_err(|e| e.to_string())?;
     for webview in game_webviews(&app) {
         webview.hide().map_err(|e| e.to_string())?;
     }
@@ -111,6 +122,7 @@ pub async fn reload_game(app: AppHandle, id: i64, url: String) -> Result<(), Str
 
 #[tauri::command]
 pub async fn close_game(app: AppHandle, id: i64) -> Result<(), String> {
+    let _guard = VIEWS.lock().map_err(|e| e.to_string())?;
     match app.get_webview(&game_label(id)) {
         Some(webview) => webview.close().map_err(|e| e.to_string()),
         None => Ok(()),
