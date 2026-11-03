@@ -36,8 +36,6 @@ Stop and ask before any change that touches one of these.
 
 ## Commands
 
-Available once the scaffold task of the plan is done.
-
 ```bash
 pnpm install
 pnpm tauri dev                                    # run the app

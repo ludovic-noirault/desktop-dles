@@ -101,7 +101,8 @@ The MVP fails, even if it works, if any of these happen:
 
 - How the frontend tells Rust where the game panel is (bounds on resize, show and hide).
 - The SQLite schema and migrations.
-- How a page that fails to load is shown in the panel.
+- How a page that fails to load is shown in the panel: the panel shows WebKit's default for a failed load,
+  usually blank, and Reload and Next game stay usable.
 - Folder layout, linting and formatting.
 - Tests: unit tests for ordering and shuffle and for the storage layer; a manual check on macOS that the
   four sample games load in the panel (Wordle, Scrandle, Videogamedle, Farflung).
