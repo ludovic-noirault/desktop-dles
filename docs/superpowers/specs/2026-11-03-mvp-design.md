@@ -116,13 +116,14 @@ last one with "Next game", without opening his browser.
 
 In the order they would come:
 
-1. Stats and streaks: one event per game per logical day, raw share text kept, editable history.
-2. Result capture: read the clipboard after the game's "share" button.
-3. JSON export and import of the history.
-4. Daily recommendation: one random game picked from https://dles.gg/ (no known API, check its terms).
-5. Translations, building on the strings module.
-6. Notification at each game's reset time.
-7. Sync between machines.
+1. Import the games list from a JSON or CSV file (name and URL, same validation as adding).
+2. Stats and streaks: one event per game per logical day, raw share text kept, editable history.
+3. Result capture: read the clipboard after the game's "share" button.
+4. JSON export and import of the history.
+5. Daily recommendation: one random game picked from https://dles.gg/ (no known API, check its terms).
+6. Translations, building on the strings module.
+7. Notification at each game's reset time.
+8. Sync between machines.
 
 Context and earlier decisions: council report https://claude.ai/artifact/1a9Df6QZy9o4jWyMfaYv2D, stack
 comparison https://claude.ai/artifact/1bpYujfUj7VcBEr7L6MKNj.

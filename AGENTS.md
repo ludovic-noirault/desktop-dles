@@ -50,8 +50,8 @@ pnpm build                                        # type-check and bundle the fr
 ## Workflow
 
 Spec, then plan, then code. A change of scope updates the spec under `docs/superpowers/specs/` before
-any code. Items in the spec's backlog (stats, streaks, clipboard capture, recommendation, translations,
-notifications, sync) are not built unless asked.
+any code. Items in the spec's backlog (games import, stats, streaks, clipboard capture, recommendation,
+translations, notifications, sync) are not built unless asked.
 
 Pure logic (`src/routine/`, `src/storage/`) is written test-first. Webview behaviour cannot be unit
 tested: the manual checklist in the plan's last task is the check, on macOS.
