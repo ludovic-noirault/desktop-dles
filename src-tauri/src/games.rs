@@ -88,7 +88,9 @@ pub async fn show_game(
             .map_err(|e| e.to_string())?;
     }
     for other in game_webviews(&app).iter().filter(|w| w.label() != label) {
-        other.hide().map_err(|e| e.to_string())?;
+        if let Err(e) = other.hide() {
+            eprintln!("failed to hide {}: {e}", other.label());
+        }
     }
     Ok(())
 }
@@ -106,7 +108,9 @@ pub async fn set_game_bounds(app: AppHandle, bounds: PanelBounds) -> Result<(), 
 pub async fn hide_games(app: AppHandle) -> Result<(), String> {
     let _guard = VIEWS.lock().map_err(|e| e.to_string())?;
     for webview in game_webviews(&app) {
-        webview.hide().map_err(|e| e.to_string())?;
+        if let Err(e) = webview.hide() {
+            eprintln!("failed to hide {}: {e}", webview.label());
+        }
     }
     Ok(())
 }

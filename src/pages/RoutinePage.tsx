@@ -34,7 +34,7 @@ export function RoutinePage() {
   }, [game]);
 
   // Separate from the effect above so switching games does not hide first.
-  // Under StrictMode the cleanup/re-run pair still ends with the game shown.
+  // gameViews runs commands in call order, so under StrictMode the last show wins.
   useEffect(() => {
     const panel = panelRef.current;
     const sync = () => {
@@ -43,10 +43,8 @@ export function RoutinePage() {
     };
     const observer = new ResizeObserver(sync);
     if (panel) observer.observe(panel);
-    window.addEventListener("resize", sync);
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", sync);
     };
   }, []);
 

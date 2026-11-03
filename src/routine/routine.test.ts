@@ -105,3 +105,16 @@ test("sync with shuffle on keeps the shuffled order and appends new games", () =
   });
   expect(s1.order.map((x) => x.id)).toEqual([...before, 4]);
 });
+
+test("sync carries an edited name and url into order, shuffle on or off", () => {
+  const edited = { ...g(2, 1), name: "Renamed", url: "https://new.test" };
+  for (const shuffle of [false, true]) {
+    const s0 = initRoutine([g(1, 0), g(2, 1)], shuffle, () => 0);
+    const s1 = routineReducer(s0, {
+      type: "sync",
+      games: [g(1, 0), edited],
+      shuffle,
+    });
+    expect(s1.order.find((x) => x.id === 2)).toEqual(edited);
+  }
+});
