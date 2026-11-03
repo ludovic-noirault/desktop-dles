@@ -1,11 +1,17 @@
+import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { RoutineProvider } from "./app/RoutineProvider";
+import { router } from "./router";
+import "./styles.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");
 
 createRoot(root).render(
   <StrictMode>
-    <h1>Desktop Dles</h1>
+    <RoutineProvider>
+      <RouterProvider router={router} />
+    </RoutineProvider>
   </StrictMode>,
 );
