@@ -8,6 +8,7 @@ import {
   listGames,
   saveOrder,
   setShuffle,
+  updateGame,
 } from "./gamesRepo";
 import { createTestDb } from "./testDb";
 
@@ -44,6 +45,23 @@ test("saveOrder persists a new order", async () => {
   const games = await listGames(db);
   await saveOrder(db, moveGame(games, games[1].id, "up"));
   expect((await listGames(db))[0].name).toBe("Scrandle");
+});
+
+test("updateGame changes name and url, trimmed, and keeps the position", async () => {
+  const [, second] = await listGames(db);
+  await updateGame(
+    db,
+    second.id,
+    "  Scrandle 2 ",
+    " https://scrandle.example ",
+  );
+  const after = (await listGames(db))[1];
+  expect(after).toMatchObject({
+    id: second.id,
+    name: "Scrandle 2",
+    url: "https://scrandle.example",
+    position: 1,
+  });
 });
 
 test("shuffle defaults to false and persists", async () => {

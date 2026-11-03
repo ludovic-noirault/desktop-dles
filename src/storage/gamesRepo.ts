@@ -23,6 +23,19 @@ export async function addGame(
   return { id: lastInsertId as number, ...game };
 }
 
+export async function updateGame(
+  db: Db,
+  id: number,
+  name: string,
+  url: string,
+): Promise<void> {
+  await db.execute("UPDATE games SET name = ?, url = ? WHERE id = ?", [
+    name.trim(),
+    url.trim(),
+    id,
+  ]);
+}
+
 export async function deleteGame(db: Db, id: number): Promise<void> {
   await db.execute("DELETE FROM games WHERE id = ?", [id]);
   await saveOrder(db, await listGames(db));

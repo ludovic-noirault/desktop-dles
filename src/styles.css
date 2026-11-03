@@ -167,6 +167,10 @@ button.primary {
   min-width: 10rem;
   padding: 0.35rem 0.5rem;
 }
+.settings .edit-form {
+  flex: 1;
+  margin-bottom: 0;
+}
 .settings form p {
   flex-basis: 100%;
   margin: 0;
