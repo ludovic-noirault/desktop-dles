@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useReducer,
+  useRef,
   useState,
 } from "react";
 import { initRoutine, routineReducer } from "../routine/routine";
@@ -73,6 +74,8 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
   const [state, dispatch] = useReducer(routineReducer, loaded.initial);
   const [games, setGames] = useState(loaded.games);
   const [shuffle, setShuffle] = useState(loaded.shuffle);
+  // The launch value drives the routine; `shuffle` is the DB value for the checkbox.
+  const launchShuffle = useRef(loaded.shuffle);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
@@ -82,7 +85,11 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
     ]);
     setGames(nextGames);
     setShuffle(nextShuffle);
-    dispatch({ type: "sync", games: nextGames, shuffle: nextShuffle });
+    dispatch({
+      type: "sync",
+      games: nextGames,
+      shuffle: launchShuffle.current,
+    });
   }, []);
 
   return (

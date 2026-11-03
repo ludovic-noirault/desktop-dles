@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState } from "react";
 import { getDb, useRoutine } from "../app/RoutineProvider";
 import { closeGame } from "../games/gameViews";
 import { isValidGameUrl, moveGame } from "../routine/routine";
@@ -18,9 +18,28 @@ export function SettingsPage() {
   const [url, setUrl] = useState("");
   const [error, setError] = useState(false);
 
-  const write = (
+  const [busy, setBusy] = useState(false);
+  // The ref blocks a second click in the same tick, before `busy` re-renders.
+  const inFlight = useRef(false);
+
+  const write = async (
     change: (db: Awaited<ReturnType<typeof getDb>>) => Promise<void>,
-  ) => getDb().then(change).then(refresh).catch(log);
+  ): Promise<boolean> => {
+    if (inFlight.current) return false;
+    inFlight.current = true;
+    setBusy(true);
+    try {
+      await change(await getDb());
+      await refresh();
+      return true;
+    } catch (err) {
+      log(err);
+      return false;
+    } finally {
+      inFlight.current = false;
+      setBusy(false);
+    }
+  };
 
   const onAdd = (e: FormEvent) => {
     e.preventDefault();
@@ -31,9 +50,11 @@ export function SettingsPage() {
     setError(false);
     write(async (db) => {
       await addGame(db, name, url);
-    }).then(() => {
-      setName("");
-      setUrl("");
+    }).then((ok) => {
+      if (ok) {
+        setName("");
+        setUrl("");
+      }
     });
   };
 
@@ -50,7 +71,7 @@ export function SettingsPage() {
             <button
               type="button"
               aria-label={strings.settings.moveUp(g.name)}
-              disabled={i === 0}
+              disabled={busy || i === 0}
               onClick={() =>
                 write((db) => saveOrder(db, moveGame(games, g.id, "up")))
               }
@@ -60,7 +81,7 @@ export function SettingsPage() {
             <button
               type="button"
               aria-label={strings.settings.moveDown(g.name)}
-              disabled={i === games.length - 1}
+              disabled={busy || i === games.length - 1}
               onClick={() =>
                 write((db) => saveOrder(db, moveGame(games, g.id, "down")))
               }
@@ -69,6 +90,7 @@ export function SettingsPage() {
             </button>
             <button
               type="button"
+              disabled={busy}
               aria-label={strings.settings.remove(g.name)}
               onClick={() =>
                 write(async (db) => {
@@ -100,7 +122,7 @@ export function SettingsPage() {
           aria-label={strings.settings.urlPlaceholder}
           aria-invalid={error}
         />
-        <button type="submit" disabled={!name.trim()}>
+        <button type="submit" disabled={busy || !name.trim()}>
           {strings.settings.add}
         </button>
         {error && <p role="alert">{strings.settings.invalidUrl}</p>}
@@ -110,6 +132,7 @@ export function SettingsPage() {
         <input
           type="checkbox"
           checked={shuffle}
+          disabled={busy}
           onChange={(e) => write((db) => setShuffle(db, e.target.checked))}
         />
         {strings.settings.shuffle}
