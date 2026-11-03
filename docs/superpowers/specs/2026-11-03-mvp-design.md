@@ -1,6 +1,6 @@
 # Desktop Dles MVP design
 
-Date: 2026-11-03. Status: draft, awaiting approval.
+Date: 2026-11-03. Status: approved.
 
 ## Intent
 
@@ -67,7 +67,7 @@ The MVP fails, even if it works, if any of these happen:
 - Game sessions (cookies, local storage) must persist across app restarts, so a game remembers its own
   progress and streak.
 - Platform: macOS first. Windows is the next target. Linux is a bonus.
-- Repository: `~/perso/desktop-dles`, to be published on Ludo's personal GitHub.
+- Repository: `~/perso/dev/desktop-dles`, to be published on Ludo's personal GitHub.
 
 ## Decided
 
