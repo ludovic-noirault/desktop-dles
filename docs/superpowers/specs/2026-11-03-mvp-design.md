@@ -19,6 +19,7 @@ Mockup: https://claude.ai/artifact/7K2AruHunYxD191i4otGyi
 **Settings page**
 
 - Add a game with a name and an `https://` URL.
+- Edit a game's name and URL, with the same validation as adding.
 - Delete a game.
 - Reorder games with up and down buttons. This order is the routine order.
 - A "Shuffle order on launch" toggle.
@@ -91,6 +92,8 @@ The MVP fails, even if it works, if any of these happen:
 - "Opened" is tracked for the current app session only, in memory. It resets on restart. A per-day,
   persisted "done" state belongs to stats.
 - Shuffle happens at each app launch, not once per day.
+- Editing a game's URL closes its webview if one is open, so the game reopens on the new URL. Editing
+  only the name keeps the webview and its state.
 - URL validation stays minimal: it must start with `https://`. No duplicate check.
 - Specs and docs are written in English, since the repo will be public.
 
