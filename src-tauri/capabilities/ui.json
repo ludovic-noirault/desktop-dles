@@ -3,5 +3,11 @@
   "identifier": "ui",
   "description": "IPC access for the React UI webview only; game webviews match nothing",
   "webviews": ["ui"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "sql:default",
+    "sql:allow-load",
+    "sql:allow-select",
+    "sql:allow-execute"
+  ]
 }
