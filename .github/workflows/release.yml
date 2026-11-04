@@ -1,28 +1,30 @@
 name: Release
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
-
-concurrency:
-  group: release
-  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
   version:
+    if: github.event.pull_request.merged
     runs-on: ubuntu-latest
+    # Serializes version computation so two quick merges cannot take the same tag.
+    concurrency:
+      group: release-version
+      cancel-in-progress: false
     permissions:
       contents: write
-      pull-requests: read
     outputs:
       version: ${{ steps.release.outputs.version }}
       release_id: ${{ steps.release.outputs.release_id }}
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
@@ -30,18 +32,12 @@ jobs:
       - id: release
         # Values reach the script through env, never interpolated into it.
         run: |
-          HEAD_REF=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
-            --jq '[.[] | select(.base.ref == "main" and .merged_at != null)][0].head.ref // empty')
-          if [ -z "$HEAD_REF" ]; then
-            echo "::error::Push to main with no merged pull request"
-            exit 1
-          fi
           VERSION=$(git tag --list 'v*' | node scripts/release.ts next-version "$HEAD_REF")
           if [ -z "$VERSION" ]; then
             echo "::notice::No release for $HEAD_REF"
             exit 0
           fi
-          git tag "v$VERSION" "$GITHUB_SHA"
+          git tag "v$VERSION" "$MERGE_SHA"
           git push origin "v$VERSION"
           RELEASE_ID=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
             -f tag_name="v$VERSION" -f name="v$VERSION" \
@@ -50,6 +46,8 @@ jobs:
           echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
 
   build:
     needs: version
@@ -69,6 +67,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
       - uses: pnpm/action-setup@v6
         with:
           version: 12

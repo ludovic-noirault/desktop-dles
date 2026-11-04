@@ -18,11 +18,13 @@ with no toolchain. Releases happen on their own: merging a pull request into `ma
   - `fix/<name>` bumps the patch number (`v0.2.0` to `v0.2.1`).
 - Every branch follows the `<type>/<name>` convention.
 - Nothing lands on `main` without a pull request.
+- The release workflow is triggered by the merge of a pull request, not by a push to `main` (2026-11-04).
 
 ## Goals
 
-1. A workflow on push to `main` that finds the pull request the pushed commit belongs to, reads its head
-   branch name, computes the next version from the latest `v*` tag, and creates the tag and the release.
+1. A workflow on the merge of a pull request into `main` that reads the pull request's head branch name,
+   computes the next version from the latest `v*` tag, and creates the tag and the release on the merge
+   commit.
 2. The release carries a macOS installer (`.dmg`, Apple Silicon) and a Windows installer (NSIS `.exe`),
    built by `tauri-apps/tauri-action@v1`.
 3. The release only becomes public once both installers are attached. A failed build leaves a draft,
@@ -82,12 +84,14 @@ With no tag yet, the base is `0.1.0`, the version currently in `package.json`, `
 - The tag is the single source of truth for the version. The workflow injects it at build time
   (`tauri build --config '{"version":"X.Y.Z"}'`), and the three files in the repo stay at `0.1.0`. This
   follows from the anti-goal on pushing to `main`.
-- The commit-to-pull-request lookup goes through the GitHub API (`GET /repos/{owner}/{repo}/commits/{sha}/pulls`),
-  which works for merge, squash and rebase merges alike.
+- The workflow runs on `pull_request` `closed` against `main` and only continues when the pull request
+  was merged. The branch name comes from the event (`pull_request.head.ref`) and the build checks out
+  `pull_request.merge_commit_sha`, which works for merge, squash and rebase merges alike. A pull request
+  closed without merge runs nothing.
 - Allowed branch types, a closed list: the conventional commit types of `AGENTS.md` (`feat`, `fix`,
   `docs`, `chore`, `refactor`, `test`) plus `ci`. No Dependabot, no fork pull requests: it is a solo repo.
-- A push to `main` with no associated pull request (only possible through an admin bypass) fails the
-  workflow loudly instead of skipping, so the breach of "nothing lands alone" is visible.
+- A direct push to `main` triggers nothing. The branch protection of goal 6, admins included, is what
+  prevents one.
 - The workflow pushes the `vX.Y.Z` tag first, then creates the draft release on it, so a failed build
   leaves both. Recovery is "Re-run failed jobs" in the Actions tab, which reuses the tag and the draft.
   If the draft is abandoned, the next merge bumps from that tag and its notes start from it.
@@ -96,8 +100,8 @@ With no tag yet, the base is `0.1.0`, the version currently in `package.json`, `
   first build checks that the `--config` override reaches the bundle version.
 - Release notes: GitHub's generated notes (`--generate-notes`), titled with the tag. For `v0.2.0`, with
   no earlier tag, they cover the whole history, which is fine.
-- Concurrency: one release run at a time (`concurrency` group, no cancel), so two quick merges cannot
-  compute the same version.
+- Concurrency: one version job at a time (job-level `concurrency` group, no cancel), so two quick merges
+  cannot compute the same version. Builds of two releases may run side by side.
 - Branch protection is applied with `gh api`, after Ludo confirms the command, once the pull request of
   this work has run the branch-name check: GitHub can only require a check it has already seen.
 
