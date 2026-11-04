@@ -1,6 +1,6 @@
 # Desktop Dles MVP design
 
-Date: 2026-11-03. Status: draft, awaiting approval.
+Date: 2026-11-03. Status: approved.
 
 ## Intent
 
@@ -19,6 +19,7 @@ Mockup: https://claude.ai/artifact/7K2AruHunYxD191i4otGyi
 **Settings page**
 
 - Add a game with a name and an `https://` URL.
+- Edit a game's name and URL, with the same validation as adding.
 - Delete a game.
 - Reorder games with up and down buttons. This order is the routine order.
 - A "Shuffle order on launch" toggle.
@@ -67,7 +68,7 @@ The MVP fails, even if it works, if any of these happen:
 - Game sessions (cookies, local storage) must persist across app restarts, so a game remembers its own
   progress and streak.
 - Platform: macOS first. Windows is the next target. Linux is a bonus.
-- Repository: `~/perso/desktop-dles`, to be published on Ludo's personal GitHub.
+- Repository: `~/perso/dev/desktop-dles`, to be published on Ludo's personal GitHub.
 
 ## Decided
 
@@ -91,6 +92,8 @@ The MVP fails, even if it works, if any of these happen:
 - "Opened" is tracked for the current app session only, in memory. It resets on restart. A per-day,
   persisted "done" state belongs to stats.
 - Shuffle happens at each app launch, not once per day.
+- Editing a game's URL closes its webview if one is open, so the game reopens on the new URL. Editing
+  only the name keeps the webview and its state.
 - URL validation stays minimal: it must start with `https://`. No duplicate check.
 - Specs and docs are written in English, since the repo will be public.
 
@@ -98,7 +101,8 @@ The MVP fails, even if it works, if any of these happen:
 
 - How the frontend tells Rust where the game panel is (bounds on resize, show and hide).
 - The SQLite schema and migrations.
-- How a page that fails to load is shown in the panel.
+- How a page that fails to load is shown in the panel: the panel shows WebKit's default for a failed load,
+  usually blank, and Reload and Next game stay usable.
 - Folder layout, linting and formatting.
 - Tests: unit tests for ordering and shuffle and for the storage layer; a manual check on macOS that the
   four sample games load in the panel (Wordle, Scrandle, Videogamedle, Farflung).
@@ -112,13 +116,14 @@ last one with "Next game", without opening his browser.
 
 In the order they would come:
 
-1. Stats and streaks: one event per game per logical day, raw share text kept, editable history.
-2. Result capture: read the clipboard after the game's "share" button.
-3. JSON export and import of the history.
-4. Daily recommendation: one random game picked from https://dles.gg/ (no known API, check its terms).
-5. Translations, building on the strings module.
-6. Notification at each game's reset time.
-7. Sync between machines.
+1. Import the games list from a JSON or CSV file (name and URL, same validation as adding).
+2. Stats and streaks: one event per game per logical day, raw share text kept, editable history.
+3. Result capture: read the clipboard after the game's "share" button.
+4. JSON export and import of the history.
+5. Daily recommendation: one random game picked from https://dles.gg/ (no known API, check its terms).
+6. Translations, building on the strings module.
+7. Notification at each game's reset time.
+8. Sync between machines.
 
 Context and earlier decisions: council report https://claude.ai/artifact/1a9Df6QZy9o4jWyMfaYv2D, stack
 comparison https://claude.ai/artifact/1bpYujfUj7VcBEr7L6MKNj.

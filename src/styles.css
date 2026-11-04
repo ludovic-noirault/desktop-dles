@@ -1,0 +1,186 @@
+:root {
+  color-scheme: light dark;
+  --border: color-mix(in srgb, currentColor 18%, transparent);
+  --accent: #3b6fe0;
+  font-family: system-ui, sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+#root,
+.shell {
+  height: 100%;
+}
+.shell {
+  display: flex;
+  flex-direction: column;
+}
+button,
+input {
+  font: inherit;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.topbar h1 {
+  font-size: 1rem;
+  margin: 0;
+}
+.topbar nav {
+  display: flex;
+  gap: 1rem;
+}
+.topbar a {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.65;
+}
+.topbar a[aria-current="page"] {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.routine {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.routine aside {
+  width: 220px;
+  flex: none;
+  padding: 1rem;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.routine aside h2 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin: 0 0 0.5rem;
+}
+.routine ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+.routine li button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  padding: 0.35rem 0.5rem;
+}
+.routine li button.opened {
+  opacity: 0.5;
+}
+.routine li button[aria-current="true"] {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  opacity: 1;
+  font-weight: 600;
+}
+.routine main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.game-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.game-title span {
+  font-size: 0.8rem;
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.empty,
+.settings {
+  padding: 1.5rem;
+  max-width: 640px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.settings ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+.settings li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.settings form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.settings form input {
+  flex: 1;
+  min-width: 10rem;
+  padding: 0.35rem 0.5rem;
+}
+.settings .edit-form {
+  flex: 1;
+  margin-bottom: 0;
+}
+.settings form p {
+  flex-basis: 100%;
+  margin: 0;
+  color: #c0392b;
+}
+.shuffle {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}

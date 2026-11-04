@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-hide-games"
+description = "Enables the hide_games command without any pre-configured scope."
+commands.allow = ["hide_games"]
+
+[[permission]]
+identifier = "deny-hide-games"
+description = "Denies the hide_games command without any pre-configured scope."
+commands.deny = ["hide_games"]
