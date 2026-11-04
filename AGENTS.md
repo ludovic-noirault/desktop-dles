@@ -67,3 +67,6 @@ installed version (2.12 at the time of the spec) or through Context7, never from
   attribution.
 - Code, comments and docs in English. Comments explain why, not what.
 - The repo is public: no secrets, no personal data in fixtures.
+- Branches are named `<type>/<name>` (`feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`). Nothing lands
+  on `main` without a pull request. Merging a `feat/*` pull request releases a minor version, a `fix/*` one a
+  patch version (rules in `scripts/release.ts`).

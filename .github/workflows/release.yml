@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    # Serializes version computation so two quick merges cannot take the same tag.
+    concurrency:
+      group: release-version
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      release_id: ${{ steps.release.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - id: release
+        # Values reach the script through env, never interpolated into it.
+        run: |
+          VERSION=$(git tag --list 'v*' | node scripts/release.ts next-version "$HEAD_REF")
+          if [ -z "$VERSION" ]; then
+            echo "::notice::No release for $HEAD_REF"
+            exit 0
+          fi
+          git tag "v$VERSION" "$MERGE_SHA"
+          git push origin "v$VERSION"
+          RELEASE_ID=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+            -f tag_name="v$VERSION" -f name="v$VERSION" \
+            -F draft=true -F generate_release_notes=true --jq .id)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+
+  build:
+    needs: version
+    if: needs.version.outputs.version != ''
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target aarch64-apple-darwin --bundles dmg
+            targets: aarch64-apple-darwin
+          - platform: windows-latest
+            args: --bundles nsis
+            targets: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.targets }}
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          releaseId: ${{ needs.version.outputs.release_id }}
+          args: ${{ matrix.args }} --config '{"version":"${{ needs.version.outputs.version }}"}'
+
+  publish:
+    needs: [version, build]
+    if: needs.version.outputs.version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.version.outputs.release_id }}

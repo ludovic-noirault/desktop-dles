@@ -1,0 +1,22 @@
+name: Branch name
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # The branch name is user input: pass it through env, never interpolate it into the script.
+      - run: node scripts/release.ts check-branch "$HEAD_REF"
+        env:
+          HEAD_REF: ${{ github.head_ref }}
