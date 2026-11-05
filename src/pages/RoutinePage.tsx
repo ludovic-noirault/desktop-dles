@@ -8,7 +8,15 @@ import {
   setGameBounds,
   showGame,
 } from "../games/gameViews";
+import { isRoutineDone } from "../routine/routine";
+import type { DayStatus } from "../routine/types";
 import { strings } from "../strings";
+
+const STATE_ICON = {
+  todo: "\u25CB",
+  finished: "\u2713",
+  ignored: "\u21E5",
+} as const;
 
 function boundsOf(el: HTMLElement): PanelBounds {
   const { x, y, width, height } = el.getBoundingClientRect();
@@ -16,11 +24,15 @@ function boundsOf(el: HTMLElement): PanelBounds {
 }
 
 export function RoutinePage() {
-  const { state, dispatch } = useRoutine();
+  const { state, dispatch, answer, busy, gameStreaks, dayStreak } =
+    useRoutine();
   const panelRef = useRef<HTMLDivElement>(null);
   const game = state.order[state.current];
   const total = state.order.length;
-  const isLast = state.current >= total - 1;
+  const currentStatus = game ? state.statuses.get(game.id) : undefined;
+  const finishedCount = [...state.statuses.values()].filter(
+    (v) => v === "finished",
+  ).length;
 
   // Never awaited: the native webview loads on its own.
   useEffect(() => {
@@ -61,20 +73,44 @@ export function RoutinePage() {
       <aside>
         <h2>{strings.aside.title}</h2>
         <ol>
-          {state.order.map((g, i) => (
-            <li key={g.id}>
-              <button
-                type="button"
-                className={state.opened.has(g.id) ? "opened" : undefined}
-                aria-current={i === state.current ? "true" : undefined}
-                onClick={() => dispatch({ type: "select", index: i })}
-              >
-                {g.name}
-              </button>
-            </li>
-          ))}
+          {state.order.map((g, i) => {
+            const status: DayStatus | "todo" =
+              state.statuses.get(g.id) ?? "todo";
+            const streak = gameStreaks.get(g.id) ?? 0;
+            return (
+              <li key={g.id}>
+                <button
+                  type="button"
+                  className={status}
+                  aria-current={i === state.current ? "true" : undefined}
+                  onClick={() => dispatch({ type: "select", index: i })}
+                >
+                  <span className="icon" aria-hidden="true">
+                    {STATE_ICON[status]}
+                  </span>
+                  <span className="sr-only">
+                    {strings.aside.status[status]}:{" "}
+                  </span>
+                  <span className="name">{g.name}</span>
+                  <span className="streak" aria-hidden="true">
+                    {streak}
+                  </span>
+                  <span className="sr-only">
+                    {strings.aside.gameStreak(streak)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ol>
-        <p>{strings.aside.counter(state.opened.size, total)}</p>
+        <footer>
+          <p className="aside-note">
+            {isRoutineDone(state)
+              ? strings.aside.done
+              : strings.aside.counter(finishedCount, total)}
+          </p>
+          <p className="aside-note">{strings.aside.dayStreak(dayStreak)}</p>
+        </footer>
       </aside>
       <main>
         <header className="panel-header">
@@ -91,11 +127,20 @@ export function RoutinePage() {
           </button>
           <button
             type="button"
-            className="primary"
-            disabled={isLast}
-            onClick={() => dispatch({ type: "next" })}
+            aria-pressed={currentStatus === "ignored"}
+            disabled={busy}
+            onClick={() => answer("ignored").catch(console.error)}
           >
-            {isLast ? strings.routine.done : strings.routine.next}
+            {strings.routine.ignore}
+          </button>
+          <button
+            type="button"
+            className="primary"
+            aria-pressed={currentStatus === "finished"}
+            disabled={busy}
+            onClick={() => answer("finished").catch(console.error)}
+          >
+            {strings.routine.finished}
           </button>
         </header>
         <div className="panel" ref={panelRef} />

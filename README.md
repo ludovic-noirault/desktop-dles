@@ -2,7 +2,8 @@
 
 A personal macOS and Windows app for a daily routine of web games, the "dles" such as Wordle,
 Scrandle, Videogamedle or Farflung. The game list is on the left, the current game is played on the
-right in the same window, and a "Next game" button moves through the routine. Built with Tauri 2,
+right in the same window, and the "Finished" and "Ignore" buttons record how each game went today.
+The app keeps a streak per game and a routine streak, stored on the machine. Built with Tauri 2,
 React and SQLite.
 
 Scope and non-goals are in the [MVP spec](docs/superpowers/specs/2026-11-03-mvp-design.md).
