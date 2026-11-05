@@ -1,5 +1,5 @@
 import { getVersion } from "@tauri-apps/api/app";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { strings } from "../strings";
 import { UpdateOffer } from "./UpdateOffer";
 import { findUpdate, type PendingUpdate } from "./updater";
@@ -16,8 +16,6 @@ type State =
 export function UpdateSection() {
   const [version, setVersion] = useState<string | null>(null);
   const [state, setState] = useState<State>({ status: "idle" });
-  // Blocks a second download in the same tick, before the state re-renders.
-  const installing = useRef(false);
 
   useEffect(() => {
     getVersion().then(setVersion).catch(console.error);
@@ -38,16 +36,16 @@ export function UpdateSection() {
   };
 
   const install = (update: PendingUpdate) => {
-    if (installing.current) return;
-    installing.current = true;
+    // The updater itself refuses a second concurrent install.
+    let failed = false;
     setState({ status: "installing", update, progress: null });
     update
-      .install((progress) =>
-        setState({ status: "installing", update, progress }),
-      )
+      .install((progress) => {
+        if (!failed) setState({ status: "installing", update, progress });
+      })
       .catch((err) => {
         console.error(err);
-        installing.current = false;
+        failed = true;
         setState({ status: "install-failed" });
       });
   };
