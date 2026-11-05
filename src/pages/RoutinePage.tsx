@@ -30,8 +30,8 @@ export function RoutinePage() {
   const game = state.order[state.current];
   const total = state.order.length;
   const currentStatus = game ? state.statuses.get(game.id) : undefined;
-  const finishedCount = [...state.statuses.values()].filter(
-    (v) => v === "finished",
+  const finishedCount = state.order.filter(
+    (g) => state.statuses.get(g.id) === "finished",
   ).length;
 
   // Never awaited: the native webview loads on its own.
