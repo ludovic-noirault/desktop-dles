@@ -65,9 +65,19 @@ If a build fails, the release stays a draft. Use "Re-run failed jobs" in the Act
 "Re-run all jobs": that would recompute the version and push a second tag.
 
 If `publish` itself is broken (a re-run reuses the original workflow file and commit), recover by
-hand: build `latest.json` with `REPO=<owner/repo> NOTES=... ASSETS=<asset names, one per line>
-node scripts/updater-json.ts <sig-dir> <version>`, run `gh release upload vX.Y.Z latest.json --clobber`,
-then `gh release edit vX.Y.Z --draft=false --latest`.
+hand from the repo root:
+
+```bash
+V=X.Y.Z
+gh release download "v$V" --pattern '*.sig' --dir sigs
+REPO=ludovic-noirault/desktop-dles \
+NOTES="$(gh release view "v$V" --json body --jq .body)" \
+ASSETS="$(gh release view "v$V" --json assets --jq '.assets[].name')" \
+  node scripts/updater-json.ts sigs "$V" > latest.json
+gh release upload "v$V" latest.json --clobber
+gh release edit "v$V" --draft=false --latest
+rm -r sigs latest.json
+```
 
 ## The `unstable` Tauri feature
 
