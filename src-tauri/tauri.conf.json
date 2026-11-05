@@ -35,7 +35,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_LUDO_PUBLIC_KEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQzQ0E4NkQwMENCNzMyMzYKUldRMk1yY00wSWJLUTZjSWhTcjd0Y0dOUFBySFoxL0Y2NytmVSt1T3YrdmRYSGZvbXFPNGkwQk8K",
       "endpoints": [
         "https://github.com/ludovic-noirault/desktop-dles/releases/latest/download/latest.json"
       ],

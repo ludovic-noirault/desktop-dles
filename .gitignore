@@ -3,3 +3,6 @@ dist
 *.local
 .DS_Store
 .grepai
+
+# Local secrets (updater signing key)
+.env
