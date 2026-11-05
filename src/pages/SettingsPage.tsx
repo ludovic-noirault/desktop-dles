@@ -1,12 +1,13 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { getDb, useRoutine } from "../app/RoutineProvider";
 import { closeGame } from "../games/gameViews";
+import { dayKey } from "../routine/day";
 import { isValidGameUrl, moveGame } from "../routine/routine";
 import type { Game } from "../routine/types";
 import type { Db } from "../storage/db";
 import {
   addGame,
-  deleteGame,
+  removeGame,
   saveOrder,
   setShuffle,
   updateGame,
@@ -89,7 +90,7 @@ export function SettingsPage() {
     e.preventDefault();
     if (!checkUrl(url, setError)) return;
     write(async (db) => {
-      await addGame(db, name, url);
+      await addGame(db, name, url, dayKey(new Date()));
     }).then((ok) => {
       if (ok) {
         setName("");
@@ -170,7 +171,7 @@ export function SettingsPage() {
                   aria-label={strings.settings.remove(g.name)}
                   onClick={() =>
                     write(async (db) => {
-                      await deleteGame(db, g.id);
+                      await removeGame(db, g.id, dayKey(new Date()));
                       await closeGame(g.id).catch(console.error);
                     })
                   }

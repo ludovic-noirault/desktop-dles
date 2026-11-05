@@ -1,11 +1,12 @@
 import { beforeEach, expect, test } from "vitest";
 import { moveGame } from "../routine/routine";
+import { listDayRows, listLifetimes, setDayStatus } from "./dayRepo";
 import type { Db } from "./db";
 import {
   addGame,
-  deleteGame,
   getShuffle,
   listGames,
+  removeGame,
   saveOrder,
   setShuffle,
   updateGame,
@@ -27,18 +28,45 @@ test("fresh database lists the four seeded games in order", async () => {
 });
 
 test("addGame appends at the end with trimmed values", async () => {
-  const added = await addGame(db, "  Globle ", " https://globle-game.com ");
+  const added = await addGame(
+    db,
+    "  Globle ",
+    " https://globle-game.com ",
+    "2026-11-05",
+  );
   expect(added).toMatchObject({
     name: "Globle",
     url: "https://globle-game.com",
     position: 4,
   });
+  const lifetime = (await listLifetimes(db)).find((l) => l.id === added.id);
+  expect(lifetime?.addedDay).toBe("2026-11-05");
 });
 
-test("deleteGame renumbers positions", async () => {
+test("removeGame hides the game, renumbers, and keeps its history", async () => {
   const [first] = await listGames(db);
-  await deleteGame(db, first.id);
-  expect((await listGames(db)).map((x) => x.position)).toEqual([0, 1, 2]);
+  await setDayStatus(db, first.id, "2026-11-04", "finished");
+  await removeGame(db, first.id, "2026-11-05");
+  const games = await listGames(db);
+  expect(games.map((x) => x.id)).not.toContain(first.id);
+  expect(games.map((x) => x.position)).toEqual([0, 1, 2]);
+  expect(await listDayRows(db)).toEqual([
+    { gameId: first.id, day: "2026-11-04", status: "finished" },
+  ]);
+  const lifetime = (await listLifetimes(db)).find((l) => l.id === first.id);
+  expect(lifetime?.removedDay).toBe("2026-11-05");
+});
+
+test("addGame after a removal takes the next free position", async () => {
+  const [first] = await listGames(db);
+  await removeGame(db, first.id, "2026-11-05");
+  const added = await addGame(
+    db,
+    "Globle",
+    "https://globle-game.com",
+    "2026-11-05",
+  );
+  expect(added.position).toBe(3);
 });
 
 test("saveOrder persists a new order", async () => {

@@ -3,7 +3,7 @@ import type { Db } from "./db";
 
 export function listGames(db: Db): Promise<Game[]> {
   return db.select<Game>(
-    "SELECT id, name, url, position FROM games ORDER BY position",
+    "SELECT id, name, url, position FROM games WHERE removed_day IS NULL ORDER BY position",
   );
 }
 
@@ -11,14 +11,15 @@ export async function addGame(
   db: Db,
   name: string,
   url: string,
+  today: string,
 ): Promise<Game> {
   const [{ next }] = await db.select<{ next: number }>(
-    "SELECT COALESCE(MAX(position), -1) + 1 AS next FROM games",
+    "SELECT COALESCE(MAX(position), -1) + 1 AS next FROM games WHERE removed_day IS NULL",
   );
   const game = { name: name.trim(), url: url.trim(), position: next };
   const { lastInsertId } = await db.execute(
-    "INSERT INTO games (name, url, position) VALUES (?, ?, ?)",
-    [game.name, game.url, game.position],
+    "INSERT INTO games (name, url, position, added_day) VALUES (?, ?, ?, ?)",
+    [game.name, game.url, game.position, today],
   );
   return { id: lastInsertId as number, ...game };
 }
@@ -36,8 +37,16 @@ export async function updateGame(
   ]);
 }
 
-export async function deleteGame(db: Db, id: number): Promise<void> {
-  await db.execute("DELETE FROM games WHERE id = ?", [id]);
+// Soft removal: the row stays so past days keep their history and streaks.
+export async function removeGame(
+  db: Db,
+  id: number,
+  today: string,
+): Promise<void> {
+  await db.execute("UPDATE games SET removed_day = ? WHERE id = ?", [
+    today,
+    id,
+  ]);
   await saveOrder(db, await listGames(db));
 }
 

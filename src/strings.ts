@@ -26,7 +26,7 @@ export const strings = {
     moveUp: (name: string) => `Move ${name} up`,
     moveDown: (name: string) => `Move ${name} down`,
     editGame: (name: string) => `Edit ${name}`,
-    remove: (name: string) => `Delete ${name}`,
+    remove: (name: string) => `Remove ${name}`,
   },
   startup: {
     starting: "Starting…",
