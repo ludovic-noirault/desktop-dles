@@ -124,6 +124,10 @@ button.primary {
 .routine li button.ignored {
   opacity: 0.55;
 }
+.routine li button.finished .streak,
+.routine li button.ignored .streak {
+  opacity: 1;
+}
 .routine li button.ignored .name {
   text-decoration: line-through;
 }

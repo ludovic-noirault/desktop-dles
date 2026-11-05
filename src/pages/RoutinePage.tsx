@@ -129,7 +129,11 @@ export function RoutinePage() {
             type="button"
             aria-pressed={currentStatus === "ignored"}
             disabled={busy}
-            onClick={() => answer("ignored").catch(console.error)}
+            onClick={(e) => {
+              // A double click would answer the next game too.
+              if (e.detail > 1) return;
+              answer("ignored").catch(console.error);
+            }}
           >
             {strings.routine.ignore}
           </button>
@@ -138,7 +142,11 @@ export function RoutinePage() {
             className="primary"
             aria-pressed={currentStatus === "finished"}
             disabled={busy}
-            onClick={() => answer("finished").catch(console.error)}
+            onClick={(e) => {
+              // A double click would answer the next game too.
+              if (e.detail > 1) return;
+              answer("finished").catch(console.error);
+            }}
           >
             {strings.routine.finished}
           </button>

@@ -147,8 +147,11 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
       const current = stateRef.current;
       const game = current.order[current.current];
       if (!game) return;
-      const next = toggleAnswer(current.statuses.get(game.id), clicked);
       const today = dayKey(new Date());
+      // After midnight the loaded statuses belong to the previous day.
+      const previous =
+        today === current.day ? current.statuses.get(game.id) : undefined;
+      const next = toggleAnswer(previous, clicked);
       const db = await getDb();
       if (next) await setDayStatus(db, game.id, today, next);
       else await clearDayStatus(db, game.id, today);

@@ -71,6 +71,14 @@ test("gameStreak is 0 when today is ignored", () => {
   expect(gameStreak(1, rows, TODAY)).toBe(0);
 });
 
+test("gameStreak counts a game added recently", () => {
+  const rows = [
+    row(1, "2026-11-04", "finished"),
+    row(1, "2026-11-05", "finished"),
+  ];
+  expect(gameStreak(1, rows, TODAY)).toBe(2);
+});
+
 test("gameStreak stops at a missed or ignored day", () => {
   expect(
     gameStreak(

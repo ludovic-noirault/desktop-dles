@@ -1,6 +1,6 @@
 # Today loop and streaks design
 
-Date: 2026-11-05. Status: draft, waiting for Ludo's review.
+Date: 2026-11-05. Status: approved by Ludo on 2026-11-05.
 
 ## Intent
 
