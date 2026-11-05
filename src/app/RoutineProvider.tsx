@@ -154,7 +154,13 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
       else await clearDayStatus(db, game.id, today);
       const nextRows = await listDayRows(db);
       setRows(nextRows);
-      if (today !== stateRef.current.day) {
+      const latest = stateRef.current;
+      // A day change or a click on another game during the write: resync
+      // statuses only, so the answer never lands on the wrong game.
+      if (
+        today !== latest.day ||
+        latest.order[latest.current]?.id !== game.id
+      ) {
         dispatch({
           type: "day",
           day: today,
