@@ -238,3 +238,22 @@ button.link {
   text-decoration: underline;
   opacity: 0.7;
 }
+
+.update-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.update-section h3 {
+  margin: 0 0 0.5rem;
+}
+.settings .update-section p {
+  margin: 0 0 0.5rem;
+}
+.update-section .update-offer {
+  align-items: flex-start;
+  max-width: none;
+}
+.update-section .actions {
+  margin-top: 0;
+}

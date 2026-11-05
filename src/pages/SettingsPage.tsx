@@ -12,6 +12,7 @@ import {
   updateGame,
 } from "../storage/gamesRepo";
 import { strings } from "../strings";
+import { UpdateSection } from "../update/UpdateSection";
 
 export function SettingsPage() {
   const { games, shuffle, refresh } = useRoutine();
@@ -226,6 +227,8 @@ export function SettingsPage() {
         />
         {strings.settings.shuffle}
       </label>
+
+      <UpdateSection />
     </main>
   );
 }
