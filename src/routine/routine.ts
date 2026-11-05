@@ -1,4 +1,4 @@
-import type { Game, RoutineAction, RoutineState } from "./types";
+import type { DayStatus, Game, RoutineAction, RoutineState } from "./types";
 
 export function isValidGameUrl(input: string): boolean {
   const trimmed = input.trim();
@@ -41,27 +41,59 @@ export function moveGame(
   return out.map((x, position) => ({ ...x, position }));
 }
 
+export function nextToDo(
+  order: Game[],
+  statuses: ReadonlyMap<number, DayStatus>,
+  from: number,
+): number {
+  for (let step = 1; step <= order.length; step++) {
+    const index = (from + step) % order.length;
+    if (!statuses.has(order[index].id)) return index;
+  }
+  return -1;
+}
+
+export function toggleAnswer(
+  previous: DayStatus | undefined,
+  clicked: DayStatus,
+): DayStatus | null {
+  return clicked === previous ? null : clicked;
+}
+
+export function isRoutineDone(state: RoutineState): boolean {
+  return (
+    state.order.length > 0 && state.order.every((x) => state.statuses.has(x.id))
+  );
+}
+
 export function initRoutine(
   games: Game[],
   shuffle: boolean,
+  day: string,
+  statuses: ReadonlyMap<number, DayStatus>,
   rng?: () => number,
 ): RoutineState {
   const order = buildRoutine(games, shuffle, rng);
-  return {
-    order,
-    current: 0,
-    opened: new Set(order.slice(0, 1).map((x) => x.id)),
-  };
+  const first = order.findIndex((x) => !statuses.has(x.id));
+  return { order, current: Math.max(0, first), day, statuses };
 }
 
 function open(state: RoutineState, index: number): RoutineState {
-  const game = state.order[index];
+  if (!state.order[index]) return state;
+  return { ...state, current: index };
+}
+
+function answer(state: RoutineState, status: DayStatus | null): RoutineState {
+  const game = state.order[state.current];
   if (!game) return state;
-  return {
-    ...state,
-    current: index,
-    opened: new Set(state.opened).add(game.id),
-  };
+  const statuses = new Map(state.statuses);
+  if (status === null) {
+    statuses.delete(game.id);
+    return { ...state, statuses };
+  }
+  statuses.set(game.id, status);
+  const next = nextToDo(state.order, statuses, state.current);
+  return { ...state, statuses, current: next === -1 ? state.current : next };
 }
 
 function sync(
@@ -87,8 +119,8 @@ function sync(
       ? stillThere
       : Math.max(0, Math.min(state.current, order.length - 1));
   const ids = new Set(order.map((x) => x.id));
-  const opened = new Set([...state.opened].filter((id) => ids.has(id)));
-  return open({ order, current, opened }, current);
+  const statuses = new Map([...state.statuses].filter(([id]) => ids.has(id)));
+  return { order, current, day: state.day, statuses };
 }
 
 export function routineReducer(
@@ -98,8 +130,10 @@ export function routineReducer(
   switch (action.type) {
     case "select":
       return open(state, action.index);
-    case "next":
-      return open(state, Math.min(state.current + 1, state.order.length - 1));
+    case "answer":
+      return answer(state, action.status);
+    case "day":
+      return { ...state, day: action.day, statuses: action.statuses };
     case "sync":
       return sync(state, action.games, action.shuffle);
   }
