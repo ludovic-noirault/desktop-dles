@@ -14,6 +14,18 @@ describe("isOnline", () => {
     expect(await isOnline(probe, urls)).toBe(true);
   });
 
+  it("counts a synchronous throw as a failed host", async () => {
+    const throwing: Probe = (url) => {
+      if (url === urls[0]) throw new Error("sync");
+      return Promise.resolve();
+    };
+    expect(await isOnline(throwing, urls)).toBe(true);
+    const allThrow: Probe = () => {
+      throw new Error("sync");
+    };
+    expect(await isOnline(allThrow, urls)).toBe(false);
+  });
+
   it("offline when every host fails", async () => {
     const probe: Probe = () => Promise.reject(new Error("down"));
     expect(await isOnline(probe, urls)).toBe(false);

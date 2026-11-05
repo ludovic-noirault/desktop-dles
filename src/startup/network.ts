@@ -21,8 +21,10 @@ export async function isOnline(
   const timeout = new Promise<false>((resolve) => {
     timer = setTimeout(() => resolve(false), timeoutMs);
   });
+  // async wrapper: a probe that throws synchronously must count as a failed
+  // host, not reject isOnline.
   const anyHost = Promise.any(
-    urls.map((url) => probe(url, controller.signal)),
+    urls.map(async (url) => probe(url, controller.signal)),
   ).then(
     () => true,
     () => false,

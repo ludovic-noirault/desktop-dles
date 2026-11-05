@@ -14,9 +14,15 @@ export function StartupGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     if (state.status === "probing") {
-      isOnline(fetchProbe).then((ok) => {
-        if (!cancelled) dispatch({ type: ok ? "probe-ok" : "probe-failed" });
-      });
+      isOnline(fetchProbe)
+        .catch((err) => {
+          // Never leave the splash on "Starting..." if the probe itself breaks.
+          console.error(err);
+          return false;
+        })
+        .then((ok) => {
+          if (!cancelled) dispatch({ type: ok ? "probe-ok" : "probe-failed" });
+        });
     } else if (state.status === "checking") {
       findUpdate()
         .catch((err) => {
