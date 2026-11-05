@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { buildUpdaterJson } from "./updater-json";
 
+const macFile = "Desktop.Dles_aarch64.app.tar.gz";
+const winFile = "Desktop.Dles_0.3.0_x64-setup.exe";
 const base = {
   version: "0.3.0",
   notes: "Some notes",
   pubDate: "2026-11-05T10:00:00Z",
   repo: "ludovic-noirault/desktop-dles",
+  assetNames: [macFile, winFile],
 };
 const mac = {
   name: "Desktop.Dles_aarch64.app.tar.gz.sig",
@@ -37,6 +40,7 @@ describe("buildUpdaterJson", () => {
   it("encodes asset names", () => {
     const json = buildUpdaterJson({
       ...base,
+      assetNames: ["Desktop Dles.app.tar.gz", winFile],
       assets: [{ ...mac, name: "Desktop Dles.app.tar.gz.sig" }, win],
     });
     expect(json.platforms["darwin-aarch64"].url).toBe(
@@ -62,5 +66,10 @@ describe("buildUpdaterJson", () => {
     expect(() =>
       buildUpdaterJson({ ...base, assets: [mac, again, win] }),
     ).toThrow(/darwin-aarch64/);
+  });
+  it("throws naming the archive missing from the release assets", () => {
+    expect(() =>
+      buildUpdaterJson({ ...base, assetNames: [winFile], assets: [mac, win] }),
+    ).toThrow(macFile);
   });
 });

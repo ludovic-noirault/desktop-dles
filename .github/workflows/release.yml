@@ -109,8 +109,9 @@ jobs:
       - run: |
           gh release download "v$VERSION" --pattern '*.sig' --dir sigs
           NOTES=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --jq .body)
-          REPO="$GITHUB_REPOSITORY" NOTES="$NOTES" node scripts/updater-json.ts sigs "$VERSION" > latest.json
-          gh release upload "v$VERSION" latest.json
+          ASSETS=$(gh release view "v$VERSION" --json assets --jq '.assets[].name')
+          REPO="$GITHUB_REPOSITORY" NOTES="$NOTES" ASSETS="$ASSETS" node scripts/updater-json.ts sigs "$VERSION" > latest.json
+          gh release upload "v$VERSION" latest.json --clobber
           gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false -f make_latest=legacy
         env:
           GH_TOKEN: ${{ github.token }}

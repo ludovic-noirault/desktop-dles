@@ -25,6 +25,9 @@ export function buildUpdaterJson(input: {
   pubDate: string;
   repo: string;
   assets: SignedAsset[];
+  // Names of the files actually uploaded to the release: a signature without
+  // its archive would publish a manifest that points at a 404.
+  assetNames: string[];
 }): UpdaterJson {
   const platforms: Partial<UpdaterJson["platforms"]> = {};
   for (const [platform, suffix] of SUFFIXES) {
@@ -35,7 +38,13 @@ export function buildUpdaterJson(input: {
       );
     }
     const [{ name, signature }] = matches;
-    const file = encodeURIComponent(name.slice(0, -".sig".length));
+    const archive = name.slice(0, -".sig".length);
+    if (!input.assetNames.includes(archive)) {
+      throw new Error(
+        `Release asset "${archive}" for ${platform} is missing from the uploaded assets`,
+      );
+    }
+    const file = encodeURIComponent(archive);
     platforms[platform] = {
       signature,
       url: `https://github.com/${input.repo}/releases/download/v${input.version}/${file}`,
@@ -51,9 +60,10 @@ export function buildUpdaterJson(input: {
 
 function main(dir: string | undefined, version: string | undefined): number {
   const repo = process.env.REPO;
-  if (!dir || !version || !repo) {
+  const assetNames = process.env.ASSETS?.split("\n").filter(Boolean);
+  if (!dir || !version || !repo || !assetNames?.length) {
     console.error(
-      "Usage: REPO=<owner/repo> [NOTES=...] node scripts/updater-json.ts <sig-dir> <version>",
+      "Usage: REPO=<owner/repo> ASSETS=<newline-separated asset names> [NOTES=...] node scripts/updater-json.ts <sig-dir> <version>",
     );
     return 1;
   }
@@ -70,6 +80,7 @@ function main(dir: string | undefined, version: string | undefined): number {
       pubDate: new Date().toISOString(),
       repo,
       assets,
+      assetNames,
     });
     console.log(JSON.stringify(json, null, 2));
     return 0;
