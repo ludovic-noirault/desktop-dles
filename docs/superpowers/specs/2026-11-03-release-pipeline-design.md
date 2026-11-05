@@ -38,7 +38,8 @@ with no toolchain. Releases happen on their own: merging a pull request into `ma
 
 - Code signing with a paid identity: no Apple Developer ID, no notarization, no Windows certificate.
 - Intel macOS and Linux builds.
-- Auto-update inside the app (`tauri-plugin-updater`).
+- ~~Auto-update inside the app (`tauri-plugin-updater`).~~ Brought in scope on 2026-11-05 by
+  `2026-11-05-updater-splash-design.md`.
 - Running tests and lints in CI on pull requests. The local `verify-gate.py` pre-push hook already runs
   `docs/agents/verify.md`. Could come later if asked.
 - A major bump from a branch name.
@@ -52,7 +53,8 @@ with no toolchain. Releases happen on their own: merging a pull request into `ma
 ## Constraints
 
 - The repo is public: GitHub-hosted macOS and Windows runners are free. No secret is needed beyond the
-  built-in `GITHUB_TOKEN` (job permission `contents: write`).
+  built-in `GITHUB_TOKEN` (job permission `contents: write`). Amended on 2026-11-05: the build also needs
+  the updater signing secrets, see `2026-11-05-updater-splash-design.md`.
 - macOS: the build uses ad-hoc signing (`bundle.macOS.signingIdentity: "-"`). Without it, Apple Silicon
   reports a downloaded app as damaged. Ad-hoc signing still asks the user to allow the app once in
   System Settings > Privacy & Security > Open Anyway.
