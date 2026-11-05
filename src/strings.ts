@@ -3,11 +3,16 @@ export const strings = {
   nav: { routine: "Routine", settings: "Settings" },
   aside: {
     title: "Today",
-    counter: (opened: number, total: number) => `${opened}/${total} opened`,
+    counter: (finished: number, total: number) =>
+      `${finished}/${total} finished today`,
+    done: "Routine done",
+    dayStreak: (n: number) => `Routine streak ${n} ${n === 1 ? "day" : "days"}`,
+    gameStreak: (n: number) => `${n}-day streak`,
+    status: { todo: "To do", finished: "Finished", ignored: "Ignored" },
   },
   routine: {
-    next: "Next game",
-    done: "Routine done",
+    finished: "Finished",
+    ignore: "Ignore",
     reload: "Reload",
     position: (n: number, total: number) => `${n}/${total}`,
     empty: "No games yet. Add some in Settings.",
@@ -26,7 +31,7 @@ export const strings = {
     moveUp: (name: string) => `Move ${name} up`,
     moveDown: (name: string) => `Move ${name} down`,
     editGame: (name: string) => `Edit ${name}`,
-    remove: (name: string) => `Delete ${name}`,
+    remove: (name: string) => `Remove ${name}`,
   },
   startup: {
     starting: "Starting…",

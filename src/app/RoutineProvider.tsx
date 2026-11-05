@@ -5,11 +5,32 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useReducer,
+  useRef,
   useState,
 } from "react";
-import { initRoutine, routineReducer } from "../routine/routine";
-import type { Game, RoutineAction, RoutineState } from "../routine/types";
+import { dayKey, msUntilNextMidnight } from "../routine/day";
+import { initRoutine, routineReducer, toggleAnswer } from "../routine/routine";
+import {
+  dayStreak as computeDayStreak,
+  gameStreak,
+  statusesOn,
+} from "../routine/streaks";
+import type {
+  DayRow,
+  DayStatus,
+  Game,
+  GameLifetime,
+  RoutineAction,
+  RoutineState,
+} from "../routine/types";
+import {
+  clearDayStatus,
+  listDayRows,
+  listLifetimes,
+  setDayStatus,
+} from "../storage/dayRepo";
 import { type Db, openDb } from "../storage/db";
 import { getShuffle, listGames } from "../storage/gamesRepo";
 import { strings } from "../strings";
@@ -22,11 +43,22 @@ export const getDb = (): Promise<Db> => {
 };
 
 const loadAll = async (db: Db) => {
-  const [games, shuffle] = await Promise.all([listGames(db), getShuffle(db)]);
-  return { games, shuffle };
+  const [games, shuffle, rows, lifetimes] = await Promise.all([
+    listGames(db),
+    getShuffle(db),
+    listDayRows(db),
+    listLifetimes(db),
+  ]);
+  return { games, shuffle, rows, lifetimes };
 };
 
-type Loaded = { games: Game[]; shuffle: boolean; initial: RoutineState };
+type Loaded = {
+  games: Game[];
+  shuffle: boolean;
+  rows: DayRow[];
+  lifetimes: GameLifetime[];
+  initial: RoutineState;
+};
 
 type RoutineContextValue = {
   state: RoutineState;
@@ -34,6 +66,10 @@ type RoutineContextValue = {
   shuffle: boolean;
   dispatch: Dispatch<RoutineAction>;
   refresh(): Promise<void>;
+  answer(clicked: DayStatus): Promise<void>;
+  busy: boolean;
+  gameStreaks: ReadonlyMap<number, number>;
+  dayStreak: number;
 };
 
 const RoutineContext = createContext<RoutineContextValue | null>(null);
@@ -52,10 +88,17 @@ export function RoutineProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       const db = await getDb();
-      const { games, shuffle } = await loadAll(db);
+      const { games, shuffle, rows, lifetimes } = await loadAll(db);
       // StrictMode runs this twice; the cancelled run must not shuffle again.
       if (!cancelled) {
-        setLoaded({ games, shuffle, initial: initRoutine(games, shuffle) });
+        const today = dayKey(new Date());
+        setLoaded({
+          games,
+          shuffle,
+          rows,
+          lifetimes,
+          initial: initRoutine(games, shuffle, today, statusesOn(rows, today)),
+        });
       }
     })().catch((err) => {
       console.error(err);
@@ -75,19 +118,121 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
   const [state, dispatch] = useReducer(routineReducer, loaded.initial);
   const [games, setGames] = useState(loaded.games);
   const [shuffle, setShuffle] = useState(loaded.shuffle);
+  const [rows, setRows] = useState(loaded.rows);
+  const [lifetimes, setLifetimes] = useState(loaded.lifetimes);
+  const [busy, setBusy] = useState(false);
+
+  // Refs let async callbacks and listeners read the latest state, not a stale closure.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  // Set synchronously before any await so two clicks in one frame write once.
+  const busyRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const db = await getDb();
     const next = await loadAll(db);
     setGames(next.games);
     setShuffle(next.shuffle);
+    setRows(next.rows);
+    setLifetimes(next.lifetimes);
     // `sync` gets the launch value; the `shuffle` state mirrors the DB for the checkbox.
     dispatch({ type: "sync", games: next.games, shuffle: loaded.shuffle });
   }, [loaded.shuffle]);
 
+  const answer = useCallback(async (clicked: DayStatus) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      const current = stateRef.current;
+      const game = current.order[current.current];
+      if (!game) return;
+      const today = dayKey(new Date());
+      // After midnight the loaded statuses belong to the previous day.
+      const previous =
+        today === current.day ? current.statuses.get(game.id) : undefined;
+      const next = toggleAnswer(previous, clicked);
+      const db = await getDb();
+      if (next) await setDayStatus(db, game.id, today, next);
+      else await clearDayStatus(db, game.id, today);
+      const nextRows = await listDayRows(db);
+      setRows(nextRows);
+      const latest = stateRef.current;
+      // A day change or a click on another game during the write: resync
+      // statuses only, so the answer never lands on the wrong game.
+      if (
+        today !== latest.day ||
+        latest.order[latest.current]?.id !== game.id
+      ) {
+        dispatch({
+          type: "day",
+          day: today,
+          statuses: statusesOn(nextRows, today),
+        });
+      } else {
+        dispatch({ type: "answer", status: next });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }, []);
+
+  const reloadDay = useCallback(async () => {
+    const today = dayKey(new Date());
+    if (today === stateRef.current.day) return;
+    try {
+      const nextRows = await listDayRows(await getDb());
+      setRows(nextRows);
+      dispatch({
+        type: "day",
+        day: today,
+        statuses: statusesOn(nextRows, today),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  // Re-armed whenever the day changes; the focus listener covers a sleeping machine.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: state.day is the re-arm trigger
+  useEffect(() => {
+    const timer = setTimeout(reloadDay, msUntilNextMidnight(new Date()) + 1000);
+    return () => clearTimeout(timer);
+  }, [state.day, reloadDay]);
+
+  useEffect(() => {
+    window.addEventListener("focus", reloadDay);
+    return () => window.removeEventListener("focus", reloadDay);
+  }, [reloadDay]);
+
+  const gameStreaks = useMemo(
+    () =>
+      new Map(
+        state.order.map((g) => [g.id, gameStreak(g.id, rows, state.day)]),
+      ),
+    [state.order, rows, state.day],
+  );
+  const dayStreak = useMemo(
+    () => computeDayStreak(lifetimes, rows, state.day),
+    [lifetimes, rows, state.day],
+  );
+
   return (
     <RoutineContext.Provider
-      value={{ state, games, shuffle, dispatch, refresh }}
+      value={{
+        state,
+        games,
+        shuffle,
+        dispatch,
+        refresh,
+        answer,
+        busy,
+        gameStreaks,
+        dayStreak,
+      }}
     >
       {children}
     </RoutineContext.Provider>

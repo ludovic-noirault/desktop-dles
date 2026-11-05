@@ -34,6 +34,7 @@ Mockup: https://claude.ai/artifact/7K2AruHunYxD191i4otGyi
 - A "Next game" button above the panel loads the following game. On the last game it reads "Routine done"
   and is disabled.
 - A game opened during this session is shown dimmed in the aside. A counter shows "N/M opened".
+  Replaced on 2026-11-05 by per-day states and streaks, see `2026-11-05-today-loop-streaks-design.md`.
 - With no games configured, the panel shows an empty state pointing to Settings.
 
 **Language**: the UI is in English. Every user-facing string lives in one module, so translation can be
@@ -90,7 +91,8 @@ The MVP fails, even if it works, if any of these happen:
 - **A "Reload" button** next to "Next game" loads the game's configured URL again. It is the way back
   when a game navigated away, froze, or loads slowly.
 - "Opened" is tracked for the current app session only, in memory. It resets on restart. A per-day,
-  persisted "done" state belongs to stats.
+  persisted "done" state belongs to stats. Brought in scope on 2026-11-05 by
+  `2026-11-05-today-loop-streaks-design.md`.
 - Shuffle happens at each app launch, not once per day.
 - Editing a game's URL closes its webview if one is open, so the game reopens on the new URL. Editing
   only the name keeps the webview and its state.
@@ -118,6 +120,8 @@ In the order they would come:
 
 1. Import the games list from a JSON or CSV file (name and URL, same validation as adding).
 2. Stats and streaks: one event per game per logical day, raw share text kept, editable history.
+   The per-day states and the two streaks are specified in `2026-11-05-today-loop-streaks-design.md`;
+   the share text, a history view and editing past days remain here.
 3. Result capture: read the clipboard after the game's "share" button.
 4. JSON export and import of the history.
 5. Daily recommendation: one random game picked from https://dles.gg/ (no known API, check its terms).

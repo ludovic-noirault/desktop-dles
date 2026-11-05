@@ -92,21 +92,74 @@ button.primary {
 }
 .routine ol {
   margin: 0;
-  padding-left: 1.5rem;
+  padding: 0;
+  list-style: none;
 }
 .routine li button {
   width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
   text-align: left;
   border: 0;
   padding: 0.35rem 0.5rem;
 }
-.routine li button.opened {
-  opacity: 0.5;
+.routine li button .icon {
+  width: 1rem;
+  flex: none;
+  text-align: center;
+}
+.routine li button .name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.routine li button .streak {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
+}
+.routine li button.finished,
+.routine li button.ignored {
+  opacity: 0.55;
+}
+.routine li button.finished .streak,
+.routine li button.ignored .streak {
+  opacity: 1;
+}
+.routine li button.ignored .name {
+  text-decoration: line-through;
 }
 .routine li button[aria-current="true"] {
   background: color-mix(in srgb, var(--accent) 22%, transparent);
   opacity: 1;
   font-weight: 600;
+}
+.routine aside footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.aside-note {
+  margin: 0 0 0.25rem;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+button.primary[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 75%, black);
+  box-shadow: inset 0 0 0 2px white;
+  font-weight: 600;
+}
+button[aria-pressed="true"]:not(.primary) {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .routine main {
   flex: 1;
