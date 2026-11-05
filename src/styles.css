@@ -184,3 +184,76 @@ button.primary {
   gap: 0.5rem;
   align-items: center;
 }
+
+.splash {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+.splash h1,
+.splash h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.splash p {
+  margin: 0;
+  max-width: 28rem;
+  opacity: 0.75;
+}
+.update-offer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 28rem;
+}
+.update-offer .notes {
+  max-height: 10rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  text-align: left;
+}
+.update-offer progress {
+  width: 16rem;
+  accent-color: var(--accent);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+.actions button.primary {
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+}
+button.link {
+  border: 0;
+  padding: 0.25rem;
+  text-decoration: underline;
+  opacity: 0.7;
+}
+
+.update-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.update-section h3 {
+  margin: 0 0 0.5rem;
+}
+.settings .update-section p {
+  margin: 0 0 0.5rem;
+}
+.update-section .update-offer {
+  align-items: flex-start;
+  max-width: none;
+}
+.update-section .actions {
+  margin-top: 0;
+}

@@ -17,6 +17,7 @@ pub fn run() {
     }];
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations("sqlite:desktop-dles.db", migrations)
@@ -30,6 +31,9 @@ pub fn run() {
             games::close_game
         ])
         .setup(|app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
             // The window is built here, not in tauri.conf.json, so game webviews can
             // be added as children of the same window later.
             let window = WindowBuilder::new(app, "main")

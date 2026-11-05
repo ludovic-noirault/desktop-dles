@@ -59,7 +59,7 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            args: --target aarch64-apple-darwin --bundles dmg
+            args: --target aarch64-apple-darwin --bundles app,dmg
             targets: aarch64-apple-darwin
           - platform: windows-latest
             args: --bundles nsis
@@ -82,8 +82,14 @@ jobs:
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.version.outputs.release_id }}
+          # The action merges latest.json by download, edit and re-upload, so two
+          # matrix jobs finishing together can drop each other's platform. The
+          # publish job writes it once instead.
+          uploadUpdaterJson: false
           args: ${{ matrix.args }} --config '{"version":"${{ needs.version.outputs.version }}"}'
 
   publish:
@@ -93,7 +99,21 @@ jobs:
     permissions:
       contents: write
     steps:
-      - run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # Values reach the script through env, never interpolated into it.
+      - run: |
+          gh release download "v$VERSION" --pattern '*.sig' --dir sigs
+          NOTES=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" --jq .body)
+          ASSETS=$(gh release view "v$VERSION" --json assets --jq '.assets[].name')
+          REPO="$GITHUB_REPOSITORY" NOTES="$NOTES" ASSETS="$ASSETS" node scripts/updater-json.ts sigs "$VERSION" > latest.json
+          gh release upload "v$VERSION" latest.json --clobber
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false -f make_latest=legacy
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_ID: ${{ needs.version.outputs.release_id }}
+          VERSION: ${{ needs.version.outputs.version }}

@@ -5,6 +5,8 @@
   "webviews": ["ui"],
   "permissions": [
     "core:default",
+    "updater:default",
+    "process:allow-restart",
     "allow-show-game",
     "allow-set-game-bounds",
     "allow-hide-games",
