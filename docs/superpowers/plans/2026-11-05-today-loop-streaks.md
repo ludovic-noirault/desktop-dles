@@ -50,7 +50,7 @@
   - `previousDay(day: string): string`
   - `msUntilNextMidnight(now: Date): number`
 
-- [ ] **Step 1: Write the failing tests** in `src/routine/day.test.ts`. First line of the file, before any import: `process.env.TZ = "Europe/Paris";` (Node reads `TZ` at runtime).
+- [x] **Step 1: Write the failing tests** in `src/routine/day.test.ts`. First line of the file, before any import: `process.env.TZ = "Europe/Paris";` (Node reads `TZ` at runtime).
 
 ```ts
 test("dayKey uses the local date on both sides of midnight", () => {
@@ -73,10 +73,10 @@ test("msUntilNextMidnight counts real time on a DST day", () => {
 });
 ```
 
-- [ ] **Step 2: Run** `pnpm test src/routine/day.test.ts`. Expected: FAIL, module not found.
-- [ ] **Step 3: Implement** the three functions and add the three types. `previousDay` parses the string and uses `Date.UTC(y, m - 1, d - 1)` so DST never shifts it. `msUntilNextMidnight` is `new Date(y, m, d + 1).getTime() - now.getTime()` on local fields.
-- [ ] **Step 4: Run** `pnpm test src/routine/day.test.ts`. Expected: PASS.
-- [ ] **Step 5: Commit** `feat: add local day keys and history types`.
+- [x] **Step 2: Run** `pnpm test src/routine/day.test.ts`. Expected: FAIL, module not found.
+- [x] **Step 3: Implement** the three functions and add the three types. `previousDay` parses the string and uses `Date.UTC(y, m - 1, d - 1)` so DST never shifts it. `msUntilNextMidnight` is `new Date(y, m, d + 1).getTime() - now.getTime()` on local fields.
+- [x] **Step 4: Run** `pnpm test src/routine/day.test.ts`. Expected: PASS.
+- [x] **Step 5: Commit** `feat: add local day keys and history types`.
 
 ### Task 2: Storage: migration, day history, game lifetime
 
@@ -110,8 +110,8 @@ ALTER TABLE games ADD COLUMN added_day TEXT;
 ALTER TABLE games ADD COLUMN removed_day TEXT;
 ```
 
-- [ ] **Step 1: Make `createTestDb` run `001_init.sql` then `002_day_status.sql`**, in that order, and register `Migration { version: 2, description: "day_status", sql: include_str!("../migrations/002_day_status.sql"), kind: MigrationKind::Up }` in `lib.rs`. Create the migration file.
-- [ ] **Step 2: Write the failing tests** in `src/storage/dayRepo.test.ts`:
+- [x] **Step 1: Make `createTestDb` run `001_init.sql` then `002_day_status.sql`**, in that order, and register `Migration { version: 2, description: "day_status", sql: include_str!("../migrations/002_day_status.sql"), kind: MigrationKind::Up }` in `lib.rs`. Create the migration file.
+- [x] **Step 2: Write the failing tests** in `src/storage/dayRepo.test.ts`:
   - `setDayStatus upserts one row per game and day`: set `finished` then `ignored` for the same game and day, `listDayRows` returns one row `{ gameId, day: "2026-11-05", status: "ignored" }`.
   - `clearDayStatus deletes only that day`: rows on `2026-11-04` and `2026-11-05`, clear `2026-11-05`, only `2026-11-04` remains.
   - `seeded games have a null lifetime`: `listLifetimes` returns four entries with `addedDay: null, removedDay: null`.
@@ -120,11 +120,11 @@ ALTER TABLE games ADD COLUMN removed_day TEXT;
   - rename `deleteGame renumbers positions` to `removeGame hides the game, renumbers, and keeps its history`: set a `finished` row for the first game, `removeGame(db, id, "2026-11-05")`, then `listGames` no longer has it and positions are `0..2`, `listDayRows` still has the row, `listLifetimes` shows `removedDay: "2026-11-05"`.
   - update `addGame appends at the end with trimmed values` to pass `"2026-11-05"` and assert `listLifetimes` gives the new game `addedDay: "2026-11-05"`.
   - `addGame after a removal takes the next free position`: remove one seeded game, add one, its position is `3`.
-- [ ] **Step 3: Run** `pnpm test src/storage`. Expected: FAIL on the new and changed tests.
-- [ ] **Step 4: Implement** `dayRepo.ts` and the `gamesRepo.ts` changes. Upsert: `INSERT INTO day_status (game_id, day, status) VALUES (?, ?, ?) ON CONFLICT (game_id, day) DO UPDATE SET status = excluded.status`. Alias columns to camelCase in the `SELECT`s.
-- [ ] **Step 5: Update the Settings call sites** (load the `design` skill first, `.tsx` edit): `addGame(db, name, url, dayKey(new Date()))` and `removeGame(db, g.id, dayKey(new Date()))`. In `strings.ts`, `settings.remove` becomes `` (name: string) => `Remove ${name}` ``. Nothing else changes in the page.
-- [ ] **Step 6: Run** `pnpm test`, `pnpm build`, `(cd src-tauri && cargo test && cargo clippy -- -D warnings)`. Expected: all pass.
-- [ ] **Step 7: Commit** `feat: store day statuses and game lifetimes`.
+- [x] **Step 3: Run** `pnpm test src/storage`. Expected: FAIL on the new and changed tests.
+- [x] **Step 4: Implement** `dayRepo.ts` and the `gamesRepo.ts` changes. Upsert: `INSERT INTO day_status (game_id, day, status) VALUES (?, ?, ?) ON CONFLICT (game_id, day) DO UPDATE SET status = excluded.status`. Alias columns to camelCase in the `SELECT`s.
+- [x] **Step 5: Update the Settings call sites** (load the `design` skill first, `.tsx` edit): `addGame(db, name, url, dayKey(new Date()))` and `removeGame(db, g.id, dayKey(new Date()))`. In `strings.ts`, `settings.remove` becomes `` (name: string) => `Remove ${name}` ``. Nothing else changes in the page.
+- [x] **Step 6: Run** `pnpm test`, `pnpm build`, `(cd src-tauri && cargo test && cargo clippy -- -D warnings)`. Expected: all pass.
+- [x] **Step 7: Commit** `feat: store day statuses and game lifetimes`.
 
 ### Task 3: Streaks
 
@@ -142,7 +142,7 @@ ALTER TABLE games ADD COLUMN removed_day TEXT;
 
 Rules, from the spec: see Global Constraints. `dayCounts` is false when the day's routine is empty. `dayStreak` starts from today when `dayCounts(today)`, otherwise from yesterday, and stops at the first day that does not count. Index rows by `day` once (a `Map`) so the loop stays linear.
 
-- [ ] **Step 1: Write the failing tests.** Helpers: `life(id, addedDay = null, removedDay = null)` and `row(gameId, day, status)`. Today is `"2026-11-05"` in every test.
+- [x] **Step 1: Write the failing tests.** Helpers: `life(id, addedDay = null, removedDay = null)` and `row(gameId, day, status)`. Today is `"2026-11-05"` in every test.
   - `inRoutine respects added and removed days`: added `2026-11-05` is out on `2026-11-04`, in on `2026-11-05`; removed `2026-11-05` is in on `2026-11-04`, out on `2026-11-05`.
   - `gameStreak counts a finished run up to today`: finished on 03, 04, 05 gives `3`.
   - `gameStreak keeps yesterday's run while today is to do`: finished on 03, 04 and nothing on 05 gives `2`.
@@ -155,10 +155,10 @@ Rules, from the spec: see Global Constraints. `dayCounts` is false when the day'
   - `dayStreak keeps yesterday's run while today is in progress`: same history on 03 and 04, today only one of two answered, gives `2`.
   - `dayStreak is broken by an all-ignored day`: 03 counts, 04 all ignored, 05 counts gives `1`.
   - `dayStreak is 0 with no history`: no rows gives `0`; rows only on `2026-01-01` give `0`.
-- [ ] **Step 2: Run** `pnpm test src/routine/streaks.test.ts`. Expected: FAIL, module not found.
-- [ ] **Step 3: Implement** the five functions.
-- [ ] **Step 4: Run** `pnpm test src/routine/streaks.test.ts`. Expected: PASS.
-- [ ] **Step 5: Commit** `feat: compute game and day streaks`.
+- [x] **Step 2: Run** `pnpm test src/routine/streaks.test.ts`. Expected: FAIL, module not found.
+- [x] **Step 3: Implement** the five functions.
+- [x] **Step 4: Run** `pnpm test src/routine/streaks.test.ts`. Expected: PASS.
+- [x] **Step 5: Commit** `feat: compute game and day streaks`.
 
 ### Task 4: Routine reducer with day statuses
 
@@ -182,7 +182,7 @@ Behaviour:
 - `sync` keeps its existing order logic and also drops statuses of ids no longer in `order`.
 - `nextToDo` scans `from + 1` to the end, then `0` to `from`, and returns the first index with no status.
 
-- [ ] **Step 1: Rewrite the `opened` tests and add new ones** in `src/routine/routine.test.ts`. Helper `st(entries: [number, DayStatus][])` builds the map. Keep every other existing test, passing `"2026-11-05"` and `new Map()` to `initRoutine`.
+- [x] **Step 1: Rewrite the `opened` tests and add new ones** in `src/routine/routine.test.ts`. Helper `st(entries: [number, DayStatus][])` builds the map. Keep every other existing test, passing `"2026-11-05"` and `new Map()` to `initRoutine`.
   - replace `initRoutine opens the first game` with `initRoutine opens the first game still to do`: games 1, 2, 3 with `st([[1, "finished"]])` gives `current` `1`; all three answered gives `0`.
   - replace `next advances, marks opened, and stops at the last game` with `answer records the status and opens the next game to do`: games 1, 2, 3, game 2 already `ignored`; `answer finished` on game 1 sets status 1 and opens index `2`.
   - `answer on the last game to do stays put`: games 1, 2, game 2 `finished`, current 0, `answer ignored` gives current `0` and `isRoutineDone` true.
@@ -191,10 +191,10 @@ Behaviour:
   - `toggleAnswer switches, sets, or clears`: `(undefined, "finished")` gives `"finished"`, `("ignored", "finished")` gives `"finished"`, `("finished", "finished")` gives `null`.
   - `day replaces statuses and keeps the current game`.
   - replace `sync marks a new current game opened and forgets deleted ids` with `sync drops statuses of games that left the routine`: statuses for 1 and 2, sync without game 2, statuses only has 1, current in range.
-- [ ] **Step 2: Run** `pnpm test src/routine/routine.test.ts`. Expected: FAIL.
-- [ ] **Step 3: Implement** the changes in `types.ts` and `routine.ts`. Remove `open()`'s `opened` handling.
-- [ ] **Step 4: Run** `pnpm test src/routine`. Expected: PASS. `pnpm build` fails in `RoutinePage.tsx` and `RoutineProvider.tsx` until Task 5 and Task 6; that is expected at this commit.
-- [ ] **Step 5: Commit** `feat: drive the routine from day statuses`.
+- [x] **Step 2: Run** `pnpm test src/routine/routine.test.ts`. Expected: FAIL.
+- [x] **Step 3: Implement** the changes in `types.ts` and `routine.ts`. Remove `open()`'s `opened` handling.
+- [x] **Step 4: Run** `pnpm test src/routine`. Expected: PASS. `pnpm build` fails in `RoutinePage.tsx` and `RoutineProvider.tsx` until Task 5 and Task 6; that is expected at this commit.
+- [x] **Step 5: Commit** `feat: drive the routine from day statuses`.
 
 ### Task 5: RoutineProvider: persistence, streaks, midnight
 
@@ -217,9 +217,9 @@ Behaviour:
 - `reloadDay()`: when `dayKey(new Date()) !== state.day`, reload `rows`, then dispatch `day`. Run it from a `setTimeout(msUntilNextMidnight(new Date()) + 1000)` re-armed after each day change, and from a `focus` listener on `window`. Clean both up on unmount. Read `state.day` through a ref so the listeners never see a stale day.
 - `refresh()` (called by Settings) also reloads `rows` and `lifetimes`.
 
-- [ ] **Step 1: Implement** the provider changes (no `design` skill needed if no markup or class changes; load it if any JSX changes).
-- [ ] **Step 2: Run** `pnpm lint` and `pnpm test`. Expected: PASS. `pnpm build` still fails in `RoutinePage.tsx` only.
-- [ ] **Step 3: Commit** `feat: persist answers and reload the day at midnight`.
+- [x] **Step 1: Implement** the provider changes (no `design` skill needed if no markup or class changes; load it if any JSX changes).
+- [x] **Step 2: Run** `pnpm lint` and `pnpm test`. Expected: PASS. `pnpm build` still fails in `RoutinePage.tsx` only.
+- [x] **Step 3: Commit** `feat: persist answers and reload the day at midnight`.
 
 ### Task 6: Routine page, strings, styles, README
 
@@ -255,17 +255,17 @@ Layout (option A of the brainstorming mockups):
 - Empty routine keeps the existing empty state.
 - README: the intro's sentence about the "Next game" button becomes one about "Finished" and "Ignore", and one sentence says the app keeps a streak per game and a routine streak, stored on the machine.
 
-- [ ] **Step 1: Load the `design` skill**, then implement the page, strings and styles. No element may overlap the `.panel` div (native webview drawn above it).
-- [ ] **Step 2: Run** `pnpm test`, `pnpm lint`, `pnpm build`, `(cd src-tauri && cargo test && cargo clippy -- -D warnings)`. Expected: all pass.
-- [ ] **Step 3: Commit** `feat: show day states and streaks in the routine`.
+- [x] **Step 1: Load the `design` skill**, then implement the page, strings and styles. No element may overlap the `.panel` div (native webview drawn above it).
+- [x] **Step 2: Run** `pnpm test`, `pnpm lint`, `pnpm build`, `(cd src-tauri && cargo test && cargo clippy -- -D warnings)`. Expected: all pass.
+- [x] **Step 3: Commit** `feat: show day states and streaks in the routine`.
 
 ### Task 7: Manual check on macOS (Ludo, with the agent)
 
 Run `pnpm tauri dev`. Each step is observed, not assumed.
 
-- [ ] **Step 1:** Finish two games and ignore one. Quit and relaunch: states and count are kept, the routine opens on the first game still to do.
-- [ ] **Step 2:** Click the ignored game in the aside, click "Finished": the state changes, the count goes up. Click the pressed "Finished": the game is back to "to do" and stays open.
-- [ ] **Step 3:** Answer every game: the footer reads "Routine done", and the routine streak counts today.
-- [ ] **Step 4:** Remove a game in Settings: it leaves the routine, the count drops by one.
-- [ ] **Step 5:** Leave the app open across midnight, or move the system clock past midnight and focus the window: every game is back to "to do", the streaks show the previous day's run.
-- [ ] **Step 6:** Double-click "Finished" fast: only the current game is answered.
+- [x] **Step 1:** Finish two games and ignore one. Quit and relaunch: states and count are kept, the routine opens on the first game still to do.
+- [x] **Step 2:** Click the ignored game in the aside, click "Finished": the state changes, the count goes up. Click the pressed "Finished": the game is back to "to do" and stays open.
+- [x] **Step 3:** Answer every game: the footer reads "Routine done", and the routine streak counts today.
+- [x] **Step 4:** Remove a game in Settings: it leaves the routine, the count drops by one.
+- [x] **Step 5:** Leave the app open across midnight, or move the system clock past midnight and focus the window: every game is back to "to do", the streaks show the previous day's run.
+- [x] **Step 6:** Double-click "Finished" fast: only the current game is answered.
