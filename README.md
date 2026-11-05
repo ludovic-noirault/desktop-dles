@@ -12,6 +12,9 @@ Scope and non-goals are in the [MVP spec](docs/superpowers/specs/2026-11-03-mvp-
 Download the `.dmg` (macOS, Apple Silicon) or the `.exe` (Windows) from the
 [latest release](https://github.com/ludovic-noirault/desktop-dles/releases).
 
+Install the first release that carries the updater (v0.3.0) by hand. Later releases arrive through
+the app, in Settings.
+
 The app is not signed with a paid certificate, so both systems warn on first launch.
 
 - macOS: the app is ad-hoc signed and not notarized. Open it once, then go to System Settings >
@@ -51,6 +54,12 @@ pnpm build                                  # type-check and bundle the frontend
 Merging a `feat/*` pull request into `main` releases a minor version, a `fix/*` one a patch version.
 Other branch types release nothing. The rules are in `scripts/release.ts`, the pipeline in
 `.github/workflows/release.yml`.
+
+Builds sign their updater artifacts, so a release needs two repository secrets:
+`TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. The matching public key sits in
+`pubkey` in `src-tauri/tauri.conf.json`. Before the draft goes public, the `publish` job builds
+`latest.json` from the uploaded `.sig` files (`scripts/updater-json.ts`) and attaches it to the
+release.
 
 If a build fails, the release stays a draft. Use "Re-run failed jobs" in the Actions tab, never
 "Re-run all jobs": that would recompute the version and push a second tag.
