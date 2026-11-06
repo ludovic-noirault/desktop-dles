@@ -1,4 +1,6 @@
+import { LogIn, LogOut, Pencil, Plus, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { IconButton } from "../app/IconButton";
 import { getDb, useRoutine } from "../app/RoutineProvider";
 import { closeGame } from "../games/gameViews";
 import { dayKey } from "../routine/day";
@@ -110,21 +112,19 @@ export function SettingsPage() {
     <main className="settings">
       <div className="settings-head">
         <h2 className="settings-title">{strings.settings.title}</h2>
-        <button
-          type="button"
+        <IconButton
+          label={strings.share.import}
+          icon={LogIn}
           ref={importButton}
           onClick={() => setImporting(true)}
-        >
-          {strings.share.import}
-        </button>
-        <button
-          type="button"
+        />
+        <IconButton
+          label={strings.share.export}
+          icon={LogOut}
           ref={exportButton}
           disabled={games.length === 0}
           onClick={() => setExporting(true)}
-        >
-          {strings.share.export}
-        </button>
+        />
       </div>
       <ul>
         {games.map((g, i) => (
@@ -189,31 +189,27 @@ export function SettingsPage() {
                 >
                   ↓
                 </button>
-                <button
-                  type="button"
+                <IconButton
+                  label={strings.settings.remove(g.name)}
+                  icon={Trash2}
                   disabled={busy}
-                  aria-label={strings.settings.remove(g.name)}
                   onClick={() =>
                     write(async (db) => {
                       await removeGame(db, g.id, dayKey(new Date()));
                       await closeGame(g.id).catch(console.error);
                     })
                   }
-                >
-                  ✕
-                </button>
-                <button
-                  type="button"
+                />
+                <IconButton
+                  label={strings.settings.editGame(g.name)}
+                  icon={Pencil}
                   ref={(el) => {
                     if (el) editButtons.current.set(g.id, el);
                     else editButtons.current.delete(g.id);
                   }}
                   disabled={busy}
-                  aria-label={strings.settings.editGame(g.name)}
                   onClick={() => startEdit(g)}
-                >
-                  {strings.settings.edit}
-                </button>
+                />
               </>
             )}
           </li>
@@ -237,9 +233,12 @@ export function SettingsPage() {
           aria-label={strings.settings.urlPlaceholder}
           aria-invalid={error}
         />
-        <button type="submit" disabled={busy || !name.trim()}>
-          {strings.settings.add}
-        </button>
+        <IconButton
+          label={strings.settings.add}
+          icon={Plus}
+          type="submit"
+          disabled={busy || !name.trim()}
+        />
         {error && <p role="alert">{strings.settings.invalidUrl}</p>}
       </form>
 

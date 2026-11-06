@@ -1,5 +1,15 @@
 import { Link } from "@tanstack/react-router";
+import {
+  Check,
+  Circle,
+  CircleCheck,
+  CircleMinus,
+  RotateCw,
+  ShieldOff,
+  SkipForward,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
+import { IconButton } from "../app/IconButton";
 import { useRoutine } from "../app/RoutineProvider";
 import {
   hideGames,
@@ -13,9 +23,9 @@ import type { DayStatus } from "../routine/types";
 import { strings } from "../strings";
 
 const STATE_ICON = {
-  todo: "\u25CB",
-  finished: "\u2713",
-  ignored: "\u21E5",
+  todo: Circle,
+  finished: CircleCheck,
+  ignored: CircleMinus,
 } as const;
 
 function boundsOf(el: HTMLElement): PanelBounds {
@@ -76,6 +86,7 @@ export function RoutinePage() {
           {state.order.map((g, i) => {
             const status: DayStatus | "todo" =
               state.statuses.get(g.id) ?? "todo";
+            const StateIcon = STATE_ICON[status];
             const streak = gameStreaks.get(g.id) ?? 0;
             return (
               <li key={g.id}>
@@ -86,7 +97,7 @@ export function RoutinePage() {
                   onClick={() => dispatch({ type: "select", index: i })}
                 >
                   <span className="icon" aria-hidden="true">
-                    {STATE_ICON[status]}
+                    <StateIcon size={16} />
                   </span>
                   <span className="sr-only">
                     {strings.aside.status[status]}:{" "}
@@ -119,24 +130,23 @@ export function RoutinePage() {
             <span>{game.url}</span>
           </div>
           <span>{strings.routine.position(state.current + 1, total)}</span>
-          <button
-            type="button"
+          <IconButton
+            label={strings.routine.reload}
+            icon={RotateCw}
             onClick={() =>
               reloadGame(game.id, game.url, true).catch(console.error)
             }
-          >
-            {strings.routine.reload}
-          </button>
-          <button
-            type="button"
+          />
+          <IconButton
+            label={strings.routine.reloadUnblocked}
+            icon={ShieldOff}
             onClick={() =>
               reloadGame(game.id, game.url, false).catch(console.error)
             }
-          >
-            {strings.routine.reloadUnblocked}
-          </button>
-          <button
-            type="button"
+          />
+          <IconButton
+            label={strings.routine.ignore}
+            icon={SkipForward}
             aria-pressed={currentStatus === "ignored"}
             disabled={busy}
             onClick={(e) => {
@@ -144,11 +154,10 @@ export function RoutinePage() {
               if (e.detail > 1) return;
               answer("ignored").catch(console.error);
             }}
-          >
-            {strings.routine.ignore}
-          </button>
-          <button
-            type="button"
+          />
+          <IconButton
+            label={strings.routine.finished}
+            icon={Check}
             className="primary"
             aria-pressed={currentStatus === "finished"}
             disabled={busy}
@@ -157,9 +166,7 @@ export function RoutinePage() {
               if (e.detail > 1) return;
               answer("finished").catch(console.error);
             }}
-          >
-            {strings.routine.finished}
-          </button>
+          />
         </header>
         <div className="panel" ref={panelRef} />
       </main>
