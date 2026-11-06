@@ -58,7 +58,7 @@
   - `export function classifyEntries(entries: SharedGame[], current: SharedGame[]): ClassifiedEntry[]`
 - Produces (in `src/storage/gamesRepo.ts`): `export async function addGames(db: Db, games: SharedGame[], today: string): Promise<void>`
 
-- [ ] **Step 1: Write the failing tests for `gamesFile.ts`**
+- [x] **Step 1: Write the failing tests for `gamesFile.ts`**
 
 ```ts
 const file = (games: unknown, extra: Record<string, unknown> = {}) =>
@@ -168,21 +168,21 @@ test("round trip keeps names and marks every game present", () => {
 });
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run: `pnpm test src/sharing`
 Expected: FAIL, `gamesFile` cannot be resolved.
 
-- [ ] **Step 3: Implement `src/sharing/gamesFile.ts`**
+- [x] **Step 3: Implement `src/sharing/gamesFile.ts`**
 
 `parseGamesFile` strips one leading `﻿`, catches `JSON.parse` errors as `notGamesFile`, and requires a plain object (not an array). It checks `format`, then `version` (`Number.isInteger`: `1` reads, `> 1` is `newerVersion`, anything else `notGamesFile`), then `games` as an array, then non-empty. Entries that are not objects, and fields that are not strings, become `""`. `classifyEntries` trims name and URL, marks `invalid` when the name is empty or `isValidGameUrl` fails, and compares `new URL(url).href` against a `Set` built from `current` that grows with each `new` entry. `buildGamesFile` writes only `name` and `url` per game.
 
-- [ ] **Step 4: Run them to see them pass**
+- [x] **Step 4: Run them to see them pass**
 
 Run: `pnpm test src/sharing`
 Expected: PASS.
 
-- [ ] **Step 5: Write the failing test for `addGames` in `gamesRepo.test.ts`**
+- [x] **Step 5: Write the failing test for `addGames` in `gamesRepo.test.ts`**
 
 ```ts
 test("addGames appends in the given order with today as added day", async () => {
@@ -197,12 +197,12 @@ test("addGames appends in the given order with today as added day", async () => 
 });
 ```
 
-- [ ] **Step 6: Run it, see it fail, implement `addGames`, run it again**
+- [x] **Step 6: Run it, see it fail, implement `addGames`, run it again**
 
 Run: `pnpm test src/storage`
 Expected: FAIL, then PASS once `addGames` calls `addGame` once per game, in order, awaiting each (no transaction exists across calls, see `saveOrder`).
 
-- [ ] **Step 7: Gates and commit**
+- [x] **Step 7: Gates and commit**
 
 Run: `pnpm test && pnpm lint && pnpm build`
 Expected: all green.
@@ -226,25 +226,25 @@ git commit -m "feat: read, write and classify shared game files"
   - Rust: `#[tauri::command] pub async fn export_games(app: tauri::AppHandle, contents: String) -> Result<bool, String>`. `Ok(true)` written, `Ok(false)` dialog cancelled, `Err(message)` on a write or path error.
   - TS (`src/sharing/commands.ts`): `export const exportGames = (contents: string): Promise<boolean> => invoke("export_games", { contents });`
 
-- [ ] **Step 1: Add the dialog plugin**
+- [x] **Step 1: Add the dialog plugin**
 
 `tauri-plugin-dialog = "2"` under `[dependencies]` in `src-tauri/Cargo.toml`; `.plugin(tauri_plugin_dialog::init())` in `lib.rs` next to the other plugins. No JavaScript package, no capability entry for it.
 
-- [ ] **Step 2: Implement `export_games` in `src-tauri/src/sharing.rs`**
+- [x] **Step 2: Implement `export_games` in `src-tauri/src/sharing.rs`**
 
 Async command, so it runs off the main thread and `blocking_save_file` is safe there. Dialog: `set_file_name("desktop-dles-games.json")`, `add_filter("JSON", &["json"])`. `None` returns `Ok(false)`. Otherwise `into_path()`, then `std::fs::write`; map both errors to `String` with `to_string()`. Register it in `generate_handler!`, add `"export_games"` to the app manifest in `build.rs`, and `"allow-export-games"` to the `ui` capability.
 
-- [ ] **Step 3: Disable the native drag-and-drop handler on `ui` only**
+- [x] **Step 3: Disable the native drag-and-drop handler on `ui` only**
 
 In `lib.rs`, chain `.disable_drag_drop_handler()` on the `WebviewBuilder::new("ui", …)`. Game webviews in `games.rs` are untouched. Comment why: HTML5 drop needs it on Windows, and the page then reads the `File` itself with no IPC.
 
-- [ ] **Step 4: Stop stray drops from navigating the `ui` webview**
+- [x] **Step 4: Stop stray drops from navigating the `ui` webview**
 
 In `AppShell.tsx`, one effect adds `dragover` and `drop` listeners on `window` that call `preventDefault()`, removed on unmount. A drop zone handles its own drop before the event reaches `window`.
 
-- [ ] **Step 5: Add `src/sharing/commands.ts`** with `exportGames` as in Interfaces.
+- [x] **Step 5: Add `src/sharing/commands.ts`** with `exportGames` as in Interfaces.
 
-- [ ] **Step 6: Gates and commit**
+- [x] **Step 6: Gates and commit**
 
 Run: `(cd src-tauri && cargo test && cargo clippy -- -D warnings) && pnpm lint && pnpm build && ! grep -rqE '"(windows|remote)"' src-tauri/capabilities`
 Expected: all green.
@@ -277,17 +277,17 @@ share: {
 },
 ```
 
-- [ ] **Step 1: Load the `design` skill.**
+- [x] **Step 1: Load the `design` skill.**
 
-- [ ] **Step 2: Header buttons**
+- [x] **Step 2: Header buttons**
 
 `SettingsPage` title row: `<h2>` then "Import…" and "Export…" buttons, as in mockup A (`.superpowers/brainstorm/22073-1793995248/content/export.html`, local only). "Export…" is disabled when the list is empty. "Import…" renders but does nothing until Task 4.
 
-- [ ] **Step 3: `ExportDialog`**
+- [x] **Step 3: `ExportDialog`**
 
 A `<dialog>` opened with `showModal()` on mount, `close` event calls `onClose`. State: a `Set<number>` of checked ids, every id at open. The "All" checkbox is checked when all are, `indeterminate` when some are, and toggles all. Rows in `games` order. "Save file…" is disabled at zero checked or while saving; it calls `exportGames(buildGamesFile(checked games in list order))`: `true` closes, `false` keeps the dialog as it is, a rejection shows `exportFailed` with `role="alert"` and keeps it open.
 
-- [ ] **Step 4: Gates and commit**
+- [x] **Step 4: Gates and commit**
 
 Run: `pnpm test && pnpm lint && pnpm build`
 Expected: all green. Then `pnpm tauri dev`: Settings › Export… opens, unchecking updates "All (n of N)", Save writes a file.
@@ -324,21 +324,21 @@ readErrors: {
 importFailed: "Some games could not be added. Your list shows the ones that were.",
 ```
 
-- [ ] **Step 1: Load the `design` skill.**
+- [x] **Step 1: Load the `design` skill.**
 
-- [ ] **Step 2: Drop step**
+- [x] **Step 2: Drop step**
 
 `<dialog>` opened with `showModal()`, as in mockup A of `import.html`. A drop zone takes `dragover` (`preventDefault`, a hover class) and `drop` (`preventDefault`, `stopPropagation`, first item of `dataTransfer.files`; no file means nothing happens). "choose a file…" is a `<label>` around a visually hidden `<input type="file" accept=".json,application/json">`. Both paths call `readGamesFile`. A `ReadError` shows `readErrors[error]` with `role="alert"` above the drop zone, which stays usable.
 
-- [ ] **Step 3: Review step**
+- [x] **Step 3: Review step**
 
 After a successful read, the drop zone is replaced by `fromFile(file.name, entries.length)` and one row per `classifyEntries(entries, games)` entry, in file order. `new` rows are checked by default; `present` and `invalid` rows are greyed, unchecked, disabled, with the `alreadyPresent` or `invalidEntry` tag. State is a `Set<number>` of checked row indexes.
 
-- [ ] **Step 4: Confirm**
+- [x] **Step 4: Confirm**
 
 "Add N games" is disabled at zero or while adding. It calls `addGames(await getDb(), checked rows in file order, dayKey(new Date()))`, then `refresh()`, then closes. On a rejection it calls `refresh()` anyway and shows `importFailed`, keeping the dialog open.
 
-- [ ] **Step 5: Gates and commit**
+- [x] **Step 5: Gates and commit**
 
 Run: `pnpm test && pnpm lint && pnpm build`
 Expected: all green.
@@ -353,7 +353,7 @@ git commit -m "feat: import games from a shared file"
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: README**
+- [x] **Step 1: README**
 
 One paragraph: Settings › My games › Export… saves the checked games to `desktop-dles-games.json`; Import… adds the games of such a file, skipping the ones already in the list. Run `pnpm lint`, commit `docs: describe sharing game lists`.
 
@@ -368,6 +368,8 @@ One paragraph: Settings › My games › Export… saves the checked games to `d
 5. Escape closes each popup, focus is back on its button.
 6. Save the exported file from TextEdit as UTF-8 and import it again: it reads.
 7. Drop a file on the Settings page outside the popup, and on the Routine page: nothing happens, the page stays. Drag selected text onto the drop zone: nothing happens.
+8. Drag a link (from a browser or Discord) onto the Settings page outside any input, and onto the Routine page: the app page stays (added after the final review: only file drops are prevented globally). Drag the same link onto the drop zone: "Save the file first, then drop it here."
+9. Drag a URL from a browser into the "https://…" field of Settings: it is inserted.
 
 - [ ] **Step 4: Manual check on Windows** on the released v0.6.0, steps 1 to 5 and 7. A failing drop is a `fix/*` follow-up; "choose a file…" covers it meanwhile (spec, Decided by Ludo).
 
