@@ -6,3 +6,6 @@ dist
 
 # Local secrets (updater signing key)
 .env
+
+# Brainstorming mockups
+.superpowers/

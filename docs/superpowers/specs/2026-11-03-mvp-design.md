@@ -122,6 +122,7 @@ last one with "Next game", without opening his browser.
 In the order they would come:
 
 1. Import the games list from a JSON or CSV file (name and URL, same validation as adding).
+   Specified, with export, in `2026-11-06-share-lists-design.md` (JSON only).
 2. Stats and streaks: one event per game per logical day, raw share text kept, editable history.
    The per-day states and the two streaks are specified in `2026-11-05-today-loop-streaks-design.md`;
    the share text, a history view and editing past days remain here.
