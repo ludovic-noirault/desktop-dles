@@ -49,7 +49,7 @@ export function SettingsPage() {
   const lastEdited = useRef<number | null>(null);
 
   const handles = useRef(new Map<number, HTMLButtonElement>());
-  const rows = useRef<HTMLLIElement[]>([]);
+  const rows = useRef(new Map<number, HTMLLIElement>());
   const [drag, setDrag] = useState<{ from: number; to: number } | null>(null);
   const dragMidpoints = useRef<number[]>([]);
   const refocus = useRef<number | null>(null);
@@ -89,17 +89,25 @@ export function SettingsPage() {
   // After a keyboard move the list re-renders in the new order; give the focus
   // back to the handle of the game that moved.
   useEffect(() => {
-    if (refocus.current === null) return;
+    // Handles are disabled while a write runs; wait for it to finish.
+    if (refocus.current === null || busy) return;
     handles.current.get(refocus.current)?.focus();
     refocus.current = null;
   });
 
+  const reorder = (from: number, to: number) => {
+    // Only a write that is accepted may claim the focus restore.
+    if (inFlight.current) return;
+    refocus.current = games[from].id;
+    write((db) => saveOrder(db, moveGameTo(games, from, to)));
+  };
+
   const startDrag = (e: PointerEvent<HTMLButtonElement>, from: number) => {
     if (busy || e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    dragMidpoints.current = rows.current.map((row) => {
-      const r = row.getBoundingClientRect();
-      return r.top + r.height / 2;
+    dragMidpoints.current = games.map((g) => {
+      const r = rows.current.get(g.id)?.getBoundingClientRect();
+      return r ? r.top + r.height / 2 : 0;
     });
     setDrag({ from, to: from });
   };
@@ -117,8 +125,7 @@ export function SettingsPage() {
     if (e.currentTarget.hasPointerCapture(e.pointerId))
       e.currentTarget.releasePointerCapture(e.pointerId);
     if (from !== to) {
-      refocus.current = games[from].id;
-      write((db) => saveOrder(db, moveGameTo(games, from, to)));
+      reorder(from, to);
     }
   };
 
@@ -127,8 +134,7 @@ export function SettingsPage() {
     if (to === i) return;
     e.preventDefault();
     if (busy || to < 0 || to >= games.length) return;
-    refocus.current = games[i].id;
-    write((db) => saveOrder(db, moveGameTo(games, i, to)));
+    reorder(i, to);
   };
 
   const checkUrl = (value: string, setInvalid: (invalid: boolean) => void) => {
@@ -197,7 +203,8 @@ export function SettingsPage() {
           <li
             key={g.id}
             ref={(el) => {
-              if (el) rows.current[i] = el;
+              if (el) rows.current.set(g.id, el);
+              else rows.current.delete(g.id);
             }}
             className={
               drag && drag.from !== drag.to && drag.to === i
@@ -256,6 +263,7 @@ export function SettingsPage() {
                   onPointerMove={moveDrag}
                   onPointerUp={endDrag}
                   onPointerCancel={() => setDrag(null)}
+                  onLostPointerCapture={() => setDrag(null)}
                   onKeyDown={(e) => onHandleKey(e, i)}
                 />
                 <span className="game-title">
