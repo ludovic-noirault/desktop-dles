@@ -1,3 +1,4 @@
+mod blocking;
 mod games;
 
 use tauri::webview::WebviewBuilder;
