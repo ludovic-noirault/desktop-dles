@@ -1,6 +1,6 @@
 # Content blocking design
 
-Date: 2026-11-06. Status: draft, waiting for Ludo's review.
+Date: 2026-11-06. Status: approved 2026-11-06, implemented on feat/content-blocking.
 
 ## Intent
 
@@ -149,17 +149,29 @@ unchanged.
   all content rule lists from that webview's controller, then navigates. `true` reloads as today and keeps the
   current mode, so goal 5 holds. A bypassed webview closed by `close_game` (game deleted in Settings) drops
   its label from the set.
-- macOS: convert the lists to WebKit JSON at build time (a `build.rs` step or a script whose output is
-  committed, whichever the conversion API makes simpler), so the app ships ready JSON and only asks WebKit to
-  compile it. The store identifier includes a hash of the JSON, so new lists recompile once.
+- macOS: the app looks each list up in WebKit's store first. Only on a cache miss does it convert the list to
+  WebKit JSON at runtime, on a background thread, then ask WebKit to compile it. The store identifier is
+  `dles-<list>-<version.txt>`, so a new lists version recompiles once.
+- macOS: one WebKit rule list per filter list, never merged or split, because a list's exceptions
+  (`ignore-previous-rules`) only apply inside one WebKit list.
 - macOS compile timing: start compilation in Tauri's `setup`. A game opened before it finishes waits for it,
   with a timeout of 5 s, after which that game opens unfiltered and the error is logged.
 - Windows: build the `adblock::Engine` once at startup from the bundled lists and share it with every game
   webview's handler. Blocked requests get an empty 403 response. Check whether the default `single-thread`
   feature makes the engine `!Send`/`!Sync`; WebView2 handlers run on the UI thread, so a main-thread-only
   engine may be fine.
-- The bypass button label: "Reload without blocking". It sits next to "Reload" in the routine page and uses
-  the same button style, secondary to "Next game".
+- The bypass button label: "Reload without blocking". It sits right after "Reload", before "Ignore" and
+  "Finished", in the routine page and uses the same button style.
+- macOS: a plain "Reload" on a game not in bypass removes the game's rule lists and attaches them again before
+  navigating. A game opened before the rules were ready (the first launch after a lists update compiles for
+  longer than the 5 s timeout) is filtered from its next Reload.
+- Windows: WebView2 reports iframe documents with the same context as the game page, which is never blocked.
+  Iframe navigations are checked in `FrameNavigationStarting` instead, as adblock's `subdocument` type, and a
+  blocked one is cancelled.
+- Windows: the `PING` resource context maps to adblock's `ping` type and `CSP_VIOLATION_REPORT` to
+  `csp_report`, so `$ping` and `$csp_report` rules apply.
+- `scripts/update-filters.ts` is the only supported way to change the bundled lists: it also rewrites
+  `version.txt`, which is the macOS cache key. A list edited by hand keeps its old compiled copy on macOS.
 - README: one paragraph on content blocking, the bypass button, and the list attributions.
 
 ## Left to the builder

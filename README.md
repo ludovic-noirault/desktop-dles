@@ -84,14 +84,15 @@ rm -r sigs latest.json
 
 Games load with ads, trackers and cookie banners filtered out, using EasyList, EasyPrivacy and the
 EasyList Cookie List. The lists are bundled in `src-tauri/filters/`, and `node scripts/update-filters.ts`
-refreshes them. On macOS the app blocks requests and hides page elements through WebKit content rule
-lists. On Windows it blocks requests, ad iframes included, but cannot hide elements, so a banner served
-from the game's own site can stay. If a game breaks, "Reload without blocking" next to "Reload" reloads
-it unfiltered until the app quits; the other games stay filtered. The first launch after the lists change
-compiles the rules (about 13 s on macOS), and a game opened in that time loads unfiltered for that run.
+refreshes them. The lists change only through that script. On macOS the app blocks requests and hides
+page elements through WebKit content rule lists. On Windows it blocks requests, ad iframes included, but
+cannot hide elements, so a banner served from the game's own site can stay. If a game breaks, "Reload
+without blocking" next to "Reload" reloads it unfiltered until the app quits; the other games stay
+filtered. The first launch after the lists change compiles the rules (several seconds on macOS), and a
+game opened in that time loads unfiltered; a plain "Reload" then applies the rules.
 
 EasyList and EasyPrivacy are by The EasyList authors, used under CC BY-SA 3.0 (they are dual-licensed
-with GPLv3). The EasyList Cookie List is used under CC BY 3.0.
+with GPLv3). The EasyList Cookie List is by The EasyList authors, used under CC BY 3.0.
 
 ## The `unstable` Tauri feature
 

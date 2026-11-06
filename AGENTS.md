@@ -30,7 +30,9 @@ Stop and ask before any change that touches one of these.
 
 - The only capability file targets `"webviews": ["ui"]`. Never `windows`, never `remote`. A `windows`
   entry would also link every game webview of that window to the IPC.
-- The app never runs its own code in a game page: no initialization script, no `eval`, no script injection API, no browser extension. It may stop a game page from loading a resource, and on macOS hide elements through WebKit's declarative content rules. Neither gives the page any channel to the app.
+- The app never runs its own code in a game page: no initialization script, no `eval`, no script injection
+  API, no browser extension. It may stop a game page from loading a resource, and on macOS hide elements
+  through WebKit's declarative content rules. Neither gives the page any channel to the app.
 - Requests to open a new window from a game go to the system browser (`on_new_window` returns `Deny`).
 - A game URL must start with `https://`.
 
