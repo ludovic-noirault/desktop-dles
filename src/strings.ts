@@ -14,6 +14,7 @@ export const strings = {
     finished: "Finished",
     ignore: "Ignore",
     reload: "Reload",
+    reloadUnblocked: "Reload without blocking",
     position: (n: number, total: number) => `${n}/${total}`,
     empty: "No games yet. Add some in Settings.",
     emptyLink: "Settings",

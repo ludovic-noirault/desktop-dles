@@ -1,3 +1,4 @@
+mod blocking;
 mod games;
 
 use tauri::webview::WebviewBuilder;
@@ -24,6 +25,7 @@ pub fn run() {
         },
     ];
     tauri::Builder::default()
+        .manage(blocking::Bypass::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(
@@ -39,6 +41,7 @@ pub fn run() {
             games::close_game
         ])
         .setup(|app| {
+            blocking::init(app.handle());
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;

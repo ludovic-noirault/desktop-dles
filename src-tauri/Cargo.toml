@@ -14,6 +14,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+adblock = { version = "0.13.5", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling", "content-blocking"] }
 serde_json = "1"
 tauri = { version = "2", features = ["unstable"] }
 tauri-plugin-opener = "2"
@@ -23,3 +24,18 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 # The updater has no mobile support.
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
 tauri-plugin-updater = "2"
+
+# WebKit content rule lists for the game webviews. Default features are off: they enable every
+# class of the framework and pull in JavaScriptCore and Security bindings this app does not use.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+block2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSError"] }
+objc2-web-kit = { version = "0.3", default-features = false, features = ["std", "WKContentRuleList", "WKContentRuleListStore", "WKUserContentController", "block2"] }
+
+# WebView2 request filtering for the game webviews. Same majors as wry 0.57.1, so the COM types are the
+# ones `PlatformWebview::controller()` and `environment()` return. Only `windows::core` is used, which
+# needs no feature.
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39"
+windows = "0.62"

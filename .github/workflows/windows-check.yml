@@ -1,0 +1,33 @@
+name: Windows check
+
+# The Windows-only Rust code (WebView2 request filtering) never compiles on a macOS machine, so every
+# pull request builds, lints and tests it on Windows.
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: dtolnay/rust-toolchain@stable
+      - run: pnpm install --frozen-lockfile
+      # A debug build with a devUrl does not read frontendDist (../dist), but a release-like build
+      # does; building it keeps the check independent of that detail.
+      - run: pnpm build
+      - run: cargo check
+        working-directory: src-tauri
+      - run: cargo clippy -- -D warnings
+        working-directory: src-tauri
+      - run: cargo test
+        working-directory: src-tauri

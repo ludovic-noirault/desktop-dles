@@ -3,10 +3,12 @@ use std::sync::Mutex;
 use serde::Deserialize;
 use tauri::webview::{NewWindowResponse, WebviewBuilder};
 use tauri::{
-    AppHandle, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, Url, Webview,
+    AppHandle, LogicalPosition, LogicalSize, Manager, Position, Rect, Size, State, Url, Webview,
     WebviewUrl,
 };
 use tauri_plugin_opener::OpenerExt;
+
+use crate::blocking::{self, Bypass};
 
 const GAME_PREFIX: &str = "game-";
 
@@ -88,7 +90,10 @@ pub async fn show_game(
     } else {
         let window = app.get_window("main").ok_or("main window not found")?;
         let opener = app.clone();
-        let builder = WebviewBuilder::new(&label, WebviewUrl::External(url)).on_new_window(
+        // The webview starts on about:blank so the rules can be attached before the game's
+        // first request.
+        let blank = Url::parse("about:blank").map_err(|e| e.to_string())?;
+        let builder = WebviewBuilder::new(&label, WebviewUrl::External(blank)).on_new_window(
             move |url, _features| {
                 // Only web links leave the app: other schemes from an untrusted page
                 // (file:, custom handlers) must not reach the OS.
@@ -100,9 +105,13 @@ pub async fn show_game(
                 NewWindowResponse::Deny
             },
         );
-        window
+        let webview = window
             .add_child(builder, bounds.position(), bounds.size())
             .map_err(|e| e.to_string())?;
+        // with_webview (inside attach) and navigate both go through the main thread's event
+        // queue in order, so the rules are in place before the navigation starts.
+        blocking::attach(&webview);
+        webview.navigate(url).map_err(|e| e.to_string())?;
     }
     hide_games_except(&app, Some(&label));
     Ok(())
@@ -127,19 +136,39 @@ pub async fn hide_games(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn reload_game(app: AppHandle, id: i64, url: String) -> Result<(), String> {
+pub async fn reload_game(
+    app: AppHandle,
+    bypass: State<'_, Bypass>,
+    id: i64,
+    url: String,
+    blocking: bool,
+) -> Result<(), String> {
     let _guard = VIEWS.lock().map_err(|e| e.to_string())?;
     let url = parse_game_url(&url)?;
-    let webview = app
-        .get_webview(&game_label(id))
-        .ok_or("game webview not found")?;
+    let label = game_label(id);
+    let webview = app.get_webview(&label).ok_or("game webview not found")?;
+    // A plain reload keeps a bypassed game bypassed: only the unblocked reload changes state.
+    // Otherwise it re-applies the rules, which may have become ready after the game opened.
+    // As in show_game, the queued with_webview calls run before the navigation.
+    if !blocking {
+        bypass.insert(&label);
+        blocking::detach(&webview);
+    } else if !bypass.contains(&label) {
+        blocking::refresh(&webview);
+    }
     webview.navigate(url).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn close_game(app: AppHandle, id: i64) -> Result<(), String> {
+pub async fn close_game(
+    app: AppHandle,
+    bypass: State<'_, Bypass>,
+    id: i64,
+) -> Result<(), String> {
     let _guard = VIEWS.lock().map_err(|e| e.to_string())?;
-    match app.get_webview(&game_label(id)) {
+    let label = game_label(id);
+    bypass.remove(&label);
+    match app.get_webview(&label) {
         Some(webview) => webview.close().map_err(|e| e.to_string()),
         None => Ok(()),
     }
