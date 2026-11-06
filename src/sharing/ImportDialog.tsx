@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getDb, useRoutine } from "../app/RoutineProvider";
 import { dayKey } from "../routine/day";
 import type { Game } from "../routine/types";
 import { addGames } from "../storage/gamesRepo";
 import { strings } from "../strings";
 import {
-  type ClassifiedEntry,
   classifyEntries,
   type ReadError,
   readGamesFile,
+  type SharedGame,
 } from "./gamesFile";
 
 export function ImportDialog({
@@ -23,10 +23,12 @@ export function ImportDialog({
   const [readError, setReadError] = useState<ReadError | null>(null);
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState("");
-  const [rows, setRows] = useState<ClassifiedEntry[] | null>(null);
+  const [entries, setEntries] = useState<SharedGame[] | null>(null);
   const [checked, setChecked] = useState<Set<number>>(new Set());
   const [adding, setAdding] = useState(false);
   const [failed, setFailed] = useState(false);
+  // Set when a refresh failed: the classification may be stale, so adding stays off.
+  const [stale, setStale] = useState(false);
 
   useEffect(() => {
     const el = dialog.current;
@@ -39,12 +41,15 @@ export function ImportDialog({
       setReadError(result.error);
       return;
     }
-    const classified = classifyEntries(result.entries, games);
     setReadError(null);
     setFileName(file.name);
-    setRows(classified);
+    setEntries(result.entries);
     setChecked(
-      new Set(classified.flatMap((r, i) => (r.status === "new" ? [i] : []))),
+      new Set(
+        classifyEntries(result.entries, games).flatMap((r, i) =>
+          r.status === "new" ? [i] : [],
+        ),
+      ),
     );
   };
 
@@ -55,25 +60,36 @@ export function ImportDialog({
       return next;
     });
 
+  // Re-derived from the live list, so rows already inserted show as present.
+  const rows = useMemo(
+    () => (entries ? classifyEntries(entries, games) : null),
+    [entries, games],
+  );
+  const picked = rows
+    ? rows.filter((r, i) => r.status === "new" && checked.has(i))
+    : [];
+  const count = picked.length;
+
   const onAdd = async () => {
-    if (!rows) return;
     setAdding(true);
     setFailed(false);
     try {
-      const picked = rows.filter((_, i) => checked.has(i));
       await addGames(await getDb(), picked, dayKey(new Date()));
       await refresh();
       dialog.current?.close();
     } catch (err) {
       console.error(err);
-      await refresh().catch(console.error);
       setFailed(true);
+      try {
+        await refresh();
+      } catch (refreshErr) {
+        console.error(refreshErr);
+        setStale(true);
+      }
     } finally {
       setAdding(false);
     }
   };
-
-  const count = checked.size;
 
   return (
     <dialog
@@ -98,7 +114,7 @@ export function ImportDialog({
               >
                 <input
                   type="checkbox"
-                  checked={checked.has(i)}
+                  checked={checked.has(i) && r.status === "new"}
                   disabled={r.status !== "new" || adding}
                   onChange={() => toggle(i)}
                 />
@@ -170,7 +186,7 @@ export function ImportDialog({
           <button
             type="button"
             className="primary"
-            disabled={count === 0 || adding}
+            disabled={count === 0 || adding || stale}
             onClick={onAdd}
           >
             {strings.share.addGames(count)}
