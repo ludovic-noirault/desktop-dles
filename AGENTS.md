@@ -25,6 +25,8 @@ a "Next game" button between them. Built with Tauri 2.
   placeholders so the same queries run under sqlx and under Node's `node:sqlite` in tests.
 - UI copy is English, and every user-facing string lives in `src/strings.ts`.
 - Package manager: pnpm. Lint and format: Biome.
+- dles.gg is read only through the `dles_catalog` and `dles_game_page` Rust commands, which build the
+  URLs themselves. The UI never sends a URL to fetch.
 
 ## Security invariants
 

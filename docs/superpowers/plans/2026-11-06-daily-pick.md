@@ -54,12 +54,12 @@
   - `export function parseCatalog(html: string): CatalogGame[]`
   - `export function parseGamePage(html: string): GameInfo`
 
-- [ ] **Step 1: Write the fixtures.** They mimic the real markup observed on 2026-11-06, trimmed.
+- [x] **Step 1: Write the fixtures.** They mimic the real markup observed on 2026-11-06, trimmed.
   - `home.html`: a few `<script>self.__next_f.push([1,"..."])</script>` tags whose string arguments, concatenated, contain `"allGames":[...]`. Put the array across two pushes, so the parser must join them first. Four entries: Wordle (`https://www.nytimes.com/games/wordle/index.html`, slug `wordle`), Globle (`https://globle-game.com/game`, slug `globle`), one with `http://` URL, one whose URL normalises to Globle's key (`https://www.globle-game.com/game/`, slug `globle-copy`). Every object also has an `id`.
   - `game-wordle.html`: a `<script type="application/ld+json">` with `{"@type":"SoftwareApplication","description":"Guess a 5-letter word in 6 tries. Each guess reveals which letters are correct, in the word but misplaced, or absent.","genre":"Words"}`, a `BreadcrumbList` JSON-LD before it, and a `<meta name="description">` with the same text.
   - `game-meta-only.html`: no JSON-LD, `<meta name="description" content="Pick the fan&#x27;s favourite &amp; win">`.
 
-- [ ] **Step 2: Write the failing tests** in `src/dles/catalog.test.ts`:
+- [x] **Step 2: Write the failing tests** in `src/dles/catalog.test.ts`:
   - `gameUrlKey`: `gameUrlKey("https://www.nytimes.com/games/wordle")` and `gameUrlKey("https://www.nytimes.com/games/wordle/index.html?ref=dles.gg#x")` both equal `"nytimes.com/games/wordle"`; `gameUrlKey("https://Scrandle.net/")` equals `gameUrlKey("https://scrandle.net")` equals `"scrandle.net"`; `gameUrlKey("https://a.com/x")` differs from `gameUrlKey("https://a.com/y")`; `gameUrlKey("http://a.com")` and `gameUrlKey("not a url")` are `null`.
   - `parses the catalog across pushes`: `parseCatalog(home)` deep-equals `[{ slug: "wordle", name: "Wordle", url: "https://www.nytimes.com/games/wordle/index.html" }, { slug: "globle", name: "Globle", url: "https://globle-game.com/game" }]` (no `id`, the `http://` entry and the duplicate key dropped, first wins).
   - `returns an empty catalog when allGames is missing or broken`: `parseCatalog("<html></html>")` and `parseCatalog` of a push holding `"allGames":[{"name":` both return `[]`.
@@ -68,21 +68,21 @@
   - `decodes entities in the meta description`: `parseGamePage(metaOnly)` equals `{ synopsis: "Pick the fan's favourite & win", category: null }`.
   - `returns nulls for an unknown page`: `parseGamePage("<html></html>")` equals `{ synopsis: null, category: null }`.
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `pnpm vitest run src/dles/catalog.test.ts`
 Expected: FAIL, module `./catalog` not found.
 
-- [ ] **Step 4: Implement `src/dles/catalog.ts`.**
+- [x] **Step 4: Implement `src/dles/catalog.ts`.**
   - `parseCatalog`: collect every `self.__next_f.push(` argument with a regex, `JSON.parse` each array, keep the string at index 1, join them. Find `"allGames":[`, then scan to the matching `]` counting brackets outside string literals (track `"` and backslash escapes), and `JSON.parse` that slice. Any exception returns `[]`. Keep entries whose `slug` matches `^[a-z0-9-]+$`, whose `name` is a non-empty string after `trim()`, and whose `url` passes `isValidGameUrl`; dedupe on `gameUrlKey(url)`, first wins.
   - `parseGamePage`: for each `application/ld+json` script, `JSON.parse` it (skip failures) and use the first object with `"@type": "SoftwareApplication"`: `description` and `genre`, trimmed, empty becomes `null`. Without one, fall back to `<meta name="description" content="...">` for the synopsis, decoding `&amp; &quot; &#39; &#x27; &lt; &gt;`.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `pnpm vitest run src/dles/catalog.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/dles
@@ -100,35 +100,35 @@ git commit -m "feat: parse the dles.gg catalog and game pages"
 - Produces (Rust): `#[tauri::command] pub async fn dles_catalog(client: tauri::State<'_, DlesClient>) -> Result<String, String>` and `#[tauri::command] pub async fn dles_game_page(client: tauri::State<'_, DlesClient>, slug: String) -> Result<String, String>`. A non-2xx status, a timeout, a body over the cap or an invalid slug are `Err`.
 - Produces (TS, `src/dles/client.ts`): `export const fetchCatalogHtml = (): Promise<string>` (invokes `dles_catalog`) and `export const fetchGamePageHtml = (slug: string): Promise<string>` (invokes `dles_game_page` with `{ slug }`).
 
-- [ ] **Step 1: Add the dependency.** In `src-tauri/Cargo.toml`: `reqwest = { version = "0.13", default-features = false, features = ["rustls", "charset"] }`. Run `cargo tree -i reqwest` from `src-tauri` and check there is still a single `reqwest` 0.13 in the tree.
+- [x] **Step 1: Add the dependency.** In `src-tauri/Cargo.toml`: `reqwest = { version = "0.13", default-features = false, features = ["rustls", "charset"] }`. Run `cargo tree -i reqwest` from `src-tauri` and check there is still a single `reqwest` 0.13 in the tree.
 
-- [ ] **Step 2: Write the failing Rust tests** in `src-tauri/src/dles.rs` (`#[cfg(test)] mod tests`):
+- [x] **Step 2: Write the failing Rust tests** in `src-tauri/src/dles.rs` (`#[cfg(test)] mod tests`):
   - `valid_slugs`: `is_valid_slug("wordle")`, `is_valid_slug("nyt-connections")`, `is_valid_slug("2048-daily")` are true; `""`, `"Wordle"`, `"../x"`, `"a/b"`, `"a b"`, `"a?b"` are false.
   - `game_page_url_builds_from_slug`: `game_page_url("wordle") == Some("https://dles.gg/game/wordle".to_string())`, `game_page_url("../x") == None`.
   - `push_capped_refuses_past_the_cap`: with `cap = 4`, pushing `b"abc"` then `b"d"` is `Ok`, pushing one more byte is `Err`.
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `(cd src-tauri && cargo test dles)`
 Expected: compile error, functions not defined.
 
-- [ ] **Step 4: Implement `src-tauri/src/dles.rs`.**
+- [x] **Step 4: Implement `src-tauri/src/dles.rs`.**
   - Constants: `CATALOG_URL = "https://dles.gg/"`, `MAX_BYTES = 5 * 1024 * 1024`, `TIMEOUT = Duration::from_secs(10)`, `USER_AGENT = concat!("DesktopDles/", env!("CARGO_PKG_VERSION"), " (+https://github.com/ludovic-noirault/desktop-dles)")`.
   - `pub fn is_valid_slug(slug: &str) -> bool`, `pub fn game_page_url(slug: &str) -> Option<String>`, `fn push_capped(buf: &mut Vec<u8>, chunk: &[u8], cap: usize) -> Result<(), String>`.
   - `pub struct DlesClient(reqwest::Client)` built once with the user agent and timeout, managed in `lib.rs`.
   - `async fn get_text(client: &reqwest::Client, url: &str) -> Result<String, String>`: `error_for_status`, read with `response.chunk().await` through `push_capped`, then `String::from_utf8_lossy`.
   - Register both commands in `generate_handler!`, add `"dles_catalog"` and `"dles_game_page"` to the app manifest list in `build.rs`, and `"allow-dles-catalog"`, `"allow-dles-game-page"` to `capabilities/ui.json`.
 
-- [ ] **Step 5: Write `src/dles/client.ts`** with the two `invoke` wrappers from Interfaces.
+- [x] **Step 5: Write `src/dles/client.ts`** with the two `invoke` wrappers from Interfaces.
 
-- [ ] **Step 6: Run the gates**
+- [x] **Step 6: Run the gates**
 
 Run: `(cd src-tauri && cargo test && cargo clippy -- -D warnings) && pnpm lint && pnpm build && ! grep -rqE '"(windows|remote)"' src-tauri/capabilities`
 Expected: all pass.
 
-- [ ] **Step 7: Check against the live site once.** Run `pnpm tauri dev`, then in the `ui` webview devtools console: `await window.__TAURI_INTERNALS__.invoke("dles_catalog").then(h => h.length)` returns a number above 100000, and `invoke("dles_game_page", { slug: "wordle" })` returns HTML containing `SoftwareApplication`. `invoke("dles_game_page", { slug: "../x" })` rejects.
+- [x] **Step 7: Check against the live site once.** Run `pnpm tauri dev`, then in the `ui` webview devtools console: `await window.__TAURI_INTERNALS__.invoke("dles_catalog").then(h => h.length)` returns a number above 100000, and `invoke("dles_game_page", { slug: "wordle" })` returns HTML containing `SoftwareApplication`. `invoke("dles_game_page", { slug: "../x" })` rejects.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src-tauri src/dles/client.ts
@@ -155,7 +155,7 @@ git commit -m "feat: fetch dles.gg pages from Rust"
   - `saveInfo(db: Db, urlKey: string, slug: string, info: GameInfo, day: string): Promise<void>` (replaces)
 - Produces (`src/storage/gamesRepo.ts`): `getSidebarWidth(db: Db): Promise<number | null>`, `setSidebarWidth(db: Db, width: number): Promise<void>`.
 
-- [ ] **Step 1: Write the migration.**
+- [x] **Step 1: Write the migration.**
 
 ```sql
 CREATE TABLE daily_pick (
@@ -185,21 +185,21 @@ CREATE TABLE dles_info (
 
 Register it as version 3, `"daily_pick"`, in `lib.rs`, and add the file to the list in `testDb.ts`.
 
-- [ ] **Step 2: Write the failing tests.** In `pickRepo.test.ts`: `savePick` then `getPick` round-trips every field, `null` synopsis and category included; `getPick` of another day is `null`; a second `savePick` for the same day replaces the first; `markPickAdded` sets `status` to `"added"`; `clearPick` removes the row; `listSkips` returns only the given day's slugs and `addSkip` twice with the same slug does not throw; `saveInfo` then `listInfo` returns the info under its key, and a second `saveInfo` replaces it. In `gamesRepo.test.ts`: `getSidebarWidth` is `null` on a fresh database, `setSidebarWidth(db, 300)` then `getSidebarWidth` is `300`, and setting again to `260` gives `260`.
+- [x] **Step 2: Write the failing tests.** In `pickRepo.test.ts`: `savePick` then `getPick` round-trips every field, `null` synopsis and category included; `getPick` of another day is `null`; a second `savePick` for the same day replaces the first; `markPickAdded` sets `status` to `"added"`; `clearPick` removes the row; `listSkips` returns only the given day's slugs and `addSkip` twice with the same slug does not throw; `saveInfo` then `listInfo` returns the info under its key, and a second `saveInfo` replaces it. In `gamesRepo.test.ts`: `getSidebarWidth` is `null` on a fresh database, `setSidebarWidth(db, 300)` then `getSidebarWidth` is `300`, and setting again to `260` gives `260`.
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `pnpm vitest run src/storage`
 Expected: FAIL, `pickRepo` not found and `getSidebarWidth` not exported.
 
-- [ ] **Step 4: Implement** `pickRepo.ts` and the two settings functions. Use `INSERT OR REPLACE` for `savePick` and `saveInfo`, `INSERT OR IGNORE` for `addSkip`, and `INSERT INTO settings (key, value) VALUES ('sidebar_width', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value` for the width (it runs under both sqlx and `node:sqlite`).
+- [x] **Step 4: Implement** `pickRepo.ts` and the two settings functions. Use `INSERT OR REPLACE` for `savePick` and `saveInfo`, `INSERT OR IGNORE` for `addSkip`, and `INSERT INTO settings (key, value) VALUES ('sidebar_width', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value` for the width (it runs under both sqlx and `node:sqlite`).
 
-- [ ] **Step 5: Run the tests and the Rust build**
+- [x] **Step 5: Run the tests and the Rust build**
 
 Run: `pnpm vitest run src/storage && (cd src-tauri && cargo test)`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src-tauri/migrations src-tauri/src/lib.rs src/storage
@@ -221,9 +221,9 @@ git commit -m "feat: store the daily pick, synopses and sidebar width"
   - `export type DlesDeps = { db: Db; fetchCatalog(): Promise<string>; fetchGamePage(slug: string): Promise<string>; rng?: () => number };`
   - `export function createDailyPick(deps: DlesDeps): { load(day: string, routine: Game[]): Promise<StoredPick | null>; another(day: string, routine: Game[]): Promise<StoredPick | null>; add(day: string): Promise<void>; fillSynopses(routine: Game[], day: string): Promise<Map<string, GameInfo>> }`
 
-- [ ] **Step 1: Write the failing tests for `pick.ts`**: `drawPick` never returns a game whose key matches a routine game (routine holds `https://www.nytimes.com/games/wordle`, catalog holds Wordle's `/index.html` URL and Globle: always Globle, for `rng` returning 0 and 0.999); a skipped slug is never drawn; returns `null` when nothing is eligible; with `rng = () => 0.5` over three eligible entries it returns the second. `a pick already in the routine is not visible`: `visiblePick` is `null` when the routine holds a game with the pick's URL key, also `null` for `status: "added"`, and returns the pick otherwise. `synopsisTargets` returns routine-matched entries in routine order and drops keys present in `known`.
+- [x] **Step 1: Write the failing tests for `pick.ts`**: `drawPick` never returns a game whose key matches a routine game (routine holds `https://www.nytimes.com/games/wordle`, catalog holds Wordle's `/index.html` URL and Globle: always Globle, for `rng` returning 0 and 0.999); a skipped slug is never drawn; returns `null` when nothing is eligible; with `rng = () => 0.5` over three eligible entries it returns the second. `a pick already in the routine is not visible`: `visiblePick` is `null` when the routine holds a game with the pick's URL key, also `null` for `status: "added"`, and returns the pick otherwise. `synopsisTargets` returns routine-matched entries in routine order and drops keys present in `known`.
 
-- [ ] **Step 2: Write the failing tests for `dailyPick.ts`**, with `createTestDb()` and fake fetchers that count calls and return the Task 1 fixtures:
+- [x] **Step 2: Write the failing tests for `dailyPick.ts`**, with `createTestDb()` and fake fetchers that count calls and return the Task 1 fixtures:
   - `load draws, fetches the page and stores the pick`: on an empty day, `load` returns a pick with `category: "Words"` and the synopsis (rng picking Wordle), `getPick` holds it with `status: "shown"`, `listInfo` holds its key.
   - `load reuses the stored pick without network`: second `createDailyPick` with fetchers that throw, same day: `load` returns the stored pick.
   - `load returns null when the catalog fails`: catalog fetcher rejects, nothing stored.
@@ -236,19 +236,19 @@ git commit -m "feat: store the daily pick, synopses and sidebar width"
   - `a new day draws again and ignores yesterday's skips`: skip Globle on day 1, then `load(day2)` can draw Globle (rng chosen so it does).
   - `fillSynopses fetches missing routine games one at a time and stores parsed results`: routine with Wordle and a game not on dles.gg: one page request (`wordle`), result stored; a second call makes no request; a page that rejects stores nothing.
 
-- [ ] **Step 3: Run them to verify they fail**
+- [x] **Step 3: Run them to verify they fail**
 
 Run: `pnpm vitest run src/dles`
 Expected: FAIL, modules not found.
 
-- [ ] **Step 4: Implement `pick.ts`**, then `dailyPick.ts`. The instance keeps the parsed catalog in memory per day (a `{ day, promise }` cache, so concurrent callers share one request and a new day refetches) and one in-flight `load` promise per day. `another`: load the catalog first; on failure return the current pick unchanged; otherwise `addSkip`, draw, fetch the page (failure keeps `null` info), `savePick`, or `clearPick` and return `null` when nothing is eligible. Every completed page parse goes through `saveInfo`, with or without synopsis; a rejected fetch saves nothing.
+- [x] **Step 4: Implement `pick.ts`**, then `dailyPick.ts`. The instance keeps the parsed catalog in memory per day (a `{ day, promise }` cache, so concurrent callers share one request and a new day refetches) and one in-flight `load` promise per day. `another`: load the catalog first; on failure return the current pick unchanged; otherwise `addSkip`, draw, fetch the page (failure keeps `null` info), `savePick`, or `clearPick` and return `null` when nothing is eligible. Every completed page parse goes through `saveInfo`, with or without synopsis; a rejected fetch saves nothing.
 
-- [ ] **Step 5: Run the tests to verify they pass**
+- [x] **Step 5: Run the tests to verify they pass**
 
 Run: `pnpm vitest run src/dles`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/dles
@@ -264,18 +264,18 @@ git commit -m "feat: draw and keep the daily pick"
 **Interfaces:**
 - Produces: `export function IconButton(props: { label: string; icon: LucideIcon } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "aria-label" | "title">): JSX.Element`, rendering `<button type="button" aria-label={label} title={label}>` with `<Icon aria-hidden size={16} />`. Forwards `ref`.
 
-- [ ] **Step 1: Load the `design` skill**, then `pnpm add lucide-react`.
+- [x] **Step 1: Load the `design` skill**, then `pnpm add lucide-react`.
 
-- [ ] **Step 2: Implement `IconButton`** and swap the buttons with the mapping of the spec: game panel Reload (`RotateCw`), Reload without blocking (`ShieldOff`), Ignore (`SkipForward`), Finished (`Check`, keeps `className="primary"` and `aria-pressed`); Settings Edit (`Pencil`, label `strings.settings.editGame(name)`), Remove (`Trash2`), Import (`LogIn`), Export (`LogOut`), Add (`Plus`, the submit button of the add form: `type="submit"` passes through). Sidebar state icons become `Circle`, `CircleCheck`, `CircleMinus` in place of `STATE_ICON`; the `sr-only` status text stays. Leave the up and down arrows: Task 6 removes them.
+- [x] **Step 2: Implement `IconButton`** and swap the buttons with the mapping of the spec: game panel Reload (`RotateCw`), Reload without blocking (`ShieldOff`), Ignore (`SkipForward`), Finished (`Check`, keeps `className="primary"` and `aria-pressed`); Settings Edit (`Pencil`, label `strings.settings.editGame(name)`), Remove (`Trash2`), Import (`LogIn`), Export (`LogOut`), Add (`Plus`, the submit button of the add form: `type="submit"` passes through). Sidebar state icons become `Circle`, `CircleCheck`, `CircleMinus` in place of `STATE_ICON`; the `sr-only` status text stays. Leave the up and down arrows: Task 6 removes them.
 
-- [ ] **Step 3: Check the hover label above the game page.** `pnpm tauri dev`, open a game, hover Reload in the panel header for two seconds. If the native tooltip shows over the game page, done. If it is hidden or clipped, add a `HeaderTooltip` drawn in HTML inside `.panel-header`, to the left of the hovered or focused button, and use it for the four panel buttons only. Record which case held in the commit message body.
+- [x] **Step 3: Check the hover label above the game page.** `pnpm tauri dev`, open a game, hover Reload in the panel header for two seconds. If the native tooltip shows over the game page, done. If it is hidden or clipped, add a `HeaderTooltip` drawn in HTML inside `.panel-header`, to the left of the hovered or focused button, and use it for the four panel buttons only. Record which case held in the commit message body.
 
-- [ ] **Step 4: Run the gates**
+- [x] **Step 4: Run the gates**
 
 Run: `pnpm test && pnpm lint && pnpm build`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package.json pnpm-lock.yaml src
@@ -291,20 +291,20 @@ git commit -m "feat: replace button text with icons"
 **Interfaces:**
 - Produces: `moveGameTo(games: Game[], from: number, to: number): Game[]` in `src/routine/routine.ts` (sorted by position, positions renumbered from 0; out-of-range indexes return the list unchanged), replacing `moveGame` and its tests. `dropIndex(midpoints: number[], y: number): number` in `src/app/dragOrder.ts`: the index the dragged row lands on, given each row's vertical midpoint captured at drag start (rows other than the dragged one included as is).
 
-- [ ] **Step 1: Write the failing tests**: `moveGameTo` from 3 to 0 on four games gives the order `[d, a, b, c]` with positions `0..3`; from 0 to 3 gives `[b, c, d, a]`; `from === to` and `to` out of range return the same order. `dropIndex([10, 30, 50, 70], 5)` is 0, `(…, 35)` is 1, `(…, 69)` is 3, `(…, 200)` is 3.
+- [x] **Step 1: Write the failing tests**: `moveGameTo` from 3 to 0 on four games gives the order `[d, a, b, c]` with positions `0..3`; from 0 to 3 gives `[b, c, d, a]`; `from === to` and `to` out of range return the same order. `dropIndex([10, 30, 50, 70], 5)` is 0, `(…, 35)` is 1, `(…, 69)` is 3, `(…, 200)` is 3.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `pnpm vitest run src/routine src/app`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement both, remove `moveGame`.**
+- [x] **Step 3: Implement both, remove `moveGame`.**
 
-- [ ] **Step 4: Build the handle in `SettingsPage.tsx`** (load the `design` skill first). A `GripVertical` button on the left of each row, `aria-label={strings.settings.reorder(name)}` (`"Move ${name}"`), no up and down arrows. `pointerdown`: `setPointerCapture`, record row midpoints; `pointermove`: compute `dropIndex`, show a drop marker; `pointerup`: if the index changed, `write((db) => saveOrder(db, moveGameTo(games, from, to)))`. `keydown` ArrowUp / ArrowDown: move by one with the same `write`, then focus the moved game's handle again (refs by game id, as `editButtons`). Disabled while `busy`.
+- [x] **Step 4: Build the handle in `SettingsPage.tsx`** (load the `design` skill first). A `GripVertical` button on the left of each row, `aria-label={strings.settings.reorder(name)}` (`"Move ${name}"`), no up and down arrows. `pointerdown`: `setPointerCapture`, record row midpoints; `pointermove`: compute `dropIndex`, show a drop marker; `pointerup`: if the index changed, `write((db) => saveOrder(db, moveGameTo(games, from, to)))`. `keydown` ArrowUp / ArrowDown: move by one with the same `write`, then focus the moved game's handle again (refs by game id, as `editButtons`). Disabled while `busy`.
 
-- [ ] **Step 5: Run the gates and try it.** `pnpm test && pnpm lint && pnpm build`, then `pnpm tauri dev`: drag the last game to the top; the routine sidebar shows the new order. Focus a handle, ArrowDown: the game moves one place and the handle keeps focus.
+- [x] **Step 5: Run the gates and try it.** `pnpm test && pnpm lint && pnpm build`, then `pnpm tauri dev`: drag the last game to the top; the routine sidebar shows the new order. Focus a handle, ArrowDown: the game moves one place and the handle keeps focus.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src
@@ -321,25 +321,25 @@ git commit -m "feat: reorder games by dragging a handle"
 - Consumes: `getSidebarWidth`, `setSidebarWidth` from Task 3.
 - Produces: `DEFAULT_SIDEBAR_WIDTH = 220`, `MIN_SIDEBAR_WIDTH = 180`, `clampSidebarWidth(width: number, windowWidth: number): number` (between 180 and `Math.max(180, Math.floor(windowWidth / 2))`). Routine context gains `sidebarWidth: number` (stored value or default, loaded in `loadAll`) and `saveSidebarWidth(width: number): Promise<void>`.
 
-- [ ] **Step 1: Write the failing tests**: `clampSidebarWidth(100, 1200)` is 180, `(400, 1200)` is 400, `(900, 1200)` is 600, `(300, 300)` is 180.
+- [x] **Step 1: Write the failing tests**: `clampSidebarWidth(100, 1200)` is 180, `(400, 1200)` is 400, `(900, 1200)` is 600, `(300, 300)` is 180.
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `pnpm vitest run src/app/sidebarWidth.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement `sidebarWidth.ts`**, then the context fields.
+- [x] **Step 3: Implement `sidebarWidth.ts`**, then the context fields.
 
-- [ ] **Step 4: Build `SidebarResizer`** (load the `design` skill first): a thin `role="separator"` `aria-orientation="vertical"` element on the aside's right edge, `aria-label={strings.aside.resize}`, with `aria-valuenow`. `pointerdown` + `setPointerCapture`; `pointermove` sets the aside width through `clampSidebarWidth(x, window.innerWidth)`; `pointerup` saves it; `dblclick` sets and saves 220. The aside renders its width clamped against the current `window.innerWidth`, so a narrower window never leaves a sidebar wider than half of it. The panel's existing `ResizeObserver` moves the game webview.
+- [x] **Step 4: Build `SidebarResizer`** (load the `design` skill first): a thin `role="separator"` `aria-orientation="vertical"` element on the aside's right edge, `aria-label={strings.aside.resize}`, with `aria-valuenow`. `pointerdown` + `setPointerCapture`; `pointermove` sets the aside width through `clampSidebarWidth(x, window.innerWidth)`; `pointerup` saves it; `dblclick` sets and saves 220. The aside renders its width clamped against the current `window.innerWidth`, so a narrower window never leaves a sidebar wider than half of it. The panel's existing `ResizeObserver` moves the game webview.
 
-- [ ] **Step 5: Check the drag over the game page.** `pnpm tauri dev`: drag the border fast to the right across the game page and back. If the drag stops when the pointer enters the game page, call `hideGames()` on `pointerdown` and `showGame` for the current game on `pointerup`. If the game page lags visibly behind the border, wrap the `setGameBounds` call of the `ResizeObserver` in `requestAnimationFrame` so it runs at most once per frame. Record what held in the commit message body.
+- [x] **Step 5: Check the drag over the game page.** `pnpm tauri dev`: drag the border fast to the right across the game page and back. If the drag stops when the pointer enters the game page, call `hideGames()` on `pointerdown` and `showGame` for the current game on `pointerup`. If the game page lags visibly behind the border, wrap the `setGameBounds` call of the `ResizeObserver` in `requestAnimationFrame` so it runs at most once per frame. Record what held in the commit message body.
 
-- [ ] **Step 6: Run the gates**
+- [x] **Step 6: Run the gates**
 
 Run: `pnpm test && pnpm lint && pnpm build`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src
@@ -356,18 +356,18 @@ git commit -m "feat: resize the sidebar"
 - Consumes: `createDailyPick`, `visiblePick` (Task 4), `fetchCatalogHtml`, `fetchGamePageHtml` (Task 2), `getDb`, `refresh` and `state.day` from `useRoutine()`, `IconButton` (Task 5), `gameUrlKey` (Task 1).
 - Produces: `useDailyPick(): { pick: StoredPick | null; info: ReadonlyMap<string, GameInfo>; busy: boolean; add(): Promise<void>; another(): Promise<void> }`. Strings: `strings.pick = { title: "Pick of the day", add: "Add to routine", another: "Another one", source: "From dles.gg" }`.
 
-- [ ] **Step 1: Write `useDailyPick`** (load the `design` skill first). One `createDailyPick` instance per app session, created at module level with the real fetchers and `await getDb()`. On mount and whenever `state.day` changes: `load(day, games)`, then `fillSynopses(games, day)`, merging results into `info` as they arrive. Errors are logged and leave the card hidden. `add` calls `add(day)` then `refresh()`. `another` sets `busy` while it runs. The returned `pick` goes through `visiblePick(pick, games)`.
+- [x] **Step 1: Write `useDailyPick`** (load the `design` skill first). One `createDailyPick` instance per app session, created at module level with the real fetchers and `await getDb()`. On mount and whenever `state.day` changes: `load(day, games)`, then `fillSynopses(games, day)`, merging results into `info` as they arrive. Errors are logged and leave the card hidden. `add` calls `add(day)` then `refresh()`. `another` sets `busy` while it runs. The returned `pick` goes through `visiblePick(pick, games)`.
 
-- [ ] **Step 2: Build `PickCard`**: placed in the aside between the `<ol>` and the `<footer>`, pushed down with `margin-top: auto`. Label with a sparkle, name, category (omitted when `null`), `IconButton` `Plus` (primary) and `Shuffle`, both disabled while `busy`. Not clickable itself.
+- [x] **Step 2: Build `PickCard`**: placed in the aside between the `<ol>` and the `<footer>`, pushed down with `margin-top: auto`. Label with a sparkle, name, category (omitted when `null`), `IconButton` `Plus` (primary) and `Shuffle`, both disabled while `busy`. Not clickable itself.
 
-- [ ] **Step 3: Build `SynopsisBubble`**: `role="tooltip"`, absolutely positioned inside the aside (the aside gets `position: relative`), spanning the aside's inner width; under the hovered row, or right above the card for the pick. Name, synopsis, `strings.pick.source`. Shown on `mouseenter` and `focus` of a routine row button (or of focus within the card), hidden on `mouseleave` and `blur`; the row button gets `aria-describedby` while it shows. No bubble when the synopsis is `null`. Routine rows look up `info.get(gameUrlKey(g.url))`.
+- [x] **Step 3: Build `SynopsisBubble`**: `role="tooltip"`, absolutely positioned inside the aside (the aside gets `position: relative`), spanning the aside's inner width; under the hovered row, or right above the card for the pick. Name, synopsis, `strings.pick.source`. Shown on `mouseenter` and `focus` of a routine row button (or of focus within the card), hidden on `mouseleave` and `blur`; the row button gets `aria-describedby` while it shows. No bubble when the synopsis is `null`. Routine rows look up `info.get(gameUrlKey(g.url))`.
 
-- [ ] **Step 4: Run the gates**
+- [x] **Step 4: Run the gates**
 
 Run: `pnpm test && pnpm lint && pnpm build && (cd src-tauri && cargo clippy -- -D warnings)`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src
@@ -379,11 +379,11 @@ git commit -m "feat: show the pick of the day and hover synopses"
 **Files:**
 - Modify: `AGENTS.md` (one line under "Decisions to follow"), this plan (checkboxes)
 
-- [ ] **Step 1: Add to `AGENTS.md`**, under "Decisions to follow, not re-derive": `- dles.gg is read only through the `dles_catalog` and `dles_game_page` Rust commands, which build the URLs themselves. The UI never sends a URL to fetch.`
+- [x] **Step 1: Add to `AGENTS.md`**, under "Decisions to follow, not re-derive": `- dles.gg is read only through the `dles_catalog` and `dles_game_page` Rust commands, which build the URLs themselves. The UI never sends a URL to fetch.`
 
 - [ ] **Step 2: Run the spec's manual check**, `docs/superpowers/specs/2026-11-06-daily-pick-design.md` § Manual check, items 1 to 12, on macOS with `pnpm tauri dev`. Write any failure down as a new task here before fixing it.
 
-- [ ] **Step 3: Run every gate of `docs/agents/verify.md`.**
+- [x] **Step 3: Run every gate of `docs/agents/verify.md`.**
 
 - [ ] **Step 4: Commit**
 
