@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getDb, useRoutine } from "../app/RoutineProvider";
 import { dayKey } from "../routine/day";
+import { isValidGameUrl } from "../routine/routine";
 import type { Game } from "../routine/types";
 import { addGames } from "../storage/gamesRepo";
 import { strings } from "../strings";
@@ -21,6 +22,7 @@ export function ImportDialog({
   const { refresh } = useRoutine();
   const dialog = useRef<HTMLDialogElement>(null);
   const [readError, setReadError] = useState<ReadError | null>(null);
+  const [needsFile, setNeedsFile] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [fileName, setFileName] = useState("");
   const [entries, setEntries] = useState<SharedGame[] | null>(null);
@@ -36,6 +38,7 @@ export function ImportDialog({
   }, []);
 
   const load = async (file: File) => {
+    setNeedsFile(false);
     const result = await readGamesFile(file);
     if (!result.ok) {
       setReadError(result.error);
@@ -70,7 +73,12 @@ export function ImportDialog({
     : [];
   const count = picked.length;
 
+  // The ref blocks a second click in the same tick, before `adding` re-renders.
+  const inFlight = useRef(false);
+
   const onAdd = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setAdding(true);
     setFailed(false);
     try {
@@ -87,6 +95,7 @@ export function ImportDialog({
         setStale(true);
       }
     } finally {
+      inFlight.current = false;
       setAdding(false);
     }
   };
@@ -118,12 +127,16 @@ export function ImportDialog({
                   disabled={r.status !== "new" || adding}
                   onChange={() => toggle(i)}
                 />
-                <span className="row-name">{r.name}</span>
+                <span className="row-name">{r.name || r.url}</span>
                 {r.status === "present" && (
                   <span className="tag">{strings.share.alreadyPresent}</span>
                 )}
                 {r.status === "invalid" && (
-                  <span className="tag">{strings.share.invalidEntry}</span>
+                  <span className="tag">
+                    {r.name === "" && isValidGameUrl(r.url)
+                      ? strings.share.missingName
+                      : strings.share.invalidEntry}
+                  </span>
                 )}
               </label>
             ))}
@@ -132,9 +145,11 @@ export function ImportDialog({
       ) : (
         <>
           <p className="hint">{strings.share.importHint}</p>
-          {readError && (
+          {(needsFile || readError) && (
             <p className="error" role="alert">
-              {strings.share.readErrors[readError]}
+              {needsFile
+                ? strings.share.dropNeedsFile
+                : readError && strings.share.readErrors[readError]}
             </p>
           )}
           {/* biome-ignore lint/a11y/noStaticElementInteractions: drag and drop is a pointer shortcut, the file input is the keyboard path */}
@@ -151,6 +166,7 @@ export function ImportDialog({
               setDragging(false);
               const file = e.dataTransfer.files[0];
               if (file) void load(file);
+              else setNeedsFile(true);
             }}
           >
             <span>{strings.share.dropHere}</span>

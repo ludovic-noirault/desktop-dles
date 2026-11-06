@@ -51,6 +51,8 @@ export const strings = {
       `From ${fileName} · ${n} ${n === 1 ? "game" : "games"}`,
     alreadyPresent: "Already in your list",
     invalidEntry: "Invalid address",
+    missingName: "Missing name",
+    dropNeedsFile: "Save the file first, then drop it here.",
     addGames: (n: number) => `Add ${n} ${n === 1 ? "game" : "games"}`,
     readErrors: {
       notGamesFile: "This is not a Desktop Dles games file.",
