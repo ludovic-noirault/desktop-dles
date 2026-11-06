@@ -11,6 +11,12 @@ export const strings = {
     resize: "Resize the game list",
     status: { todo: "To do", finished: "Finished", ignored: "Ignored" },
   },
+  pick: {
+    title: "Pick of the day",
+    add: "Add to routine",
+    another: "Another one",
+    source: "From dles.gg",
+  },
   routine: {
     finished: "Finished",
     ignore: "Ignore",

@@ -13,6 +13,10 @@ import { IconButton } from "../app/IconButton";
 import { useRoutine } from "../app/RoutineProvider";
 import { SidebarResizer } from "../app/SidebarResizer";
 import { clampSidebarWidth } from "../app/sidebarWidth";
+import { gameUrlKey } from "../dles/catalog";
+import { PickCard } from "../dles/PickCard";
+import { SynopsisBubble } from "../dles/SynopsisBubble";
+import { useDailyPick } from "../dles/useDailyPick";
 import {
   hideGames,
   type PanelBounds,
@@ -29,6 +33,8 @@ const STATE_ICON = {
   finished: CircleCheck,
   ignored: CircleMinus,
 } as const;
+
+const BUBBLE_ID = "synopsis-bubble";
 
 function boundsOf(el: HTMLElement): PanelBounds {
   const { x, y, width, height } = el.getBoundingClientRect();
@@ -50,6 +56,14 @@ export function RoutinePage() {
   const [draftWidth, setDraftWidth] = useState<number | null>(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const panelRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLElement>(null);
+  const { pick, info, busy: pickBusy, add, another } = useDailyPick();
+  // Which synopsis bubble shows: a routine row, the pick card, or none.
+  const [bubble, setBubble] = useState<{
+    key: string;
+    top: number;
+    above: boolean;
+  } | null>(null);
   const game = state.order[state.current];
   const total = state.order.length;
   const currentStatus = game ? state.statuses.get(game.id) : undefined;
@@ -107,6 +121,29 @@ export function RoutinePage() {
     );
   }
 
+  // The pick keeps the synopsis it was stored with; routine rows use the cache.
+  const bubbleGame = bubble?.key.startsWith("row:")
+    ? state.order.find((g) => `row:${g.id}` === bubble.key)
+    : undefined;
+  const bubbleText = bubble
+    ? bubble.key === "pick"
+      ? pick && { name: pick.name, synopsis: pick.synopsis }
+      : bubbleGame && {
+          name: bubbleGame.name,
+          synopsis: info.get(gameUrlKey(bubbleGame.url) ?? "")?.synopsis,
+        }
+    : null;
+
+  // offsetTop is relative to the aside (its positioned ancestor), so the
+  // bubble follows the row when the list scrolls.
+  const showBubble = (key: string, el: HTMLElement, above = false) =>
+    setBubble({
+      key,
+      top: above ? el.offsetTop : el.offsetTop + el.offsetHeight,
+      above,
+    });
+  const hideBubble = () => setBubble(null);
+
   const width = clampSidebarWidth(draftWidth ?? sidebarWidth, windowWidth);
 
   return (
@@ -125,6 +162,17 @@ export function RoutinePage() {
                   type="button"
                   className={status}
                   aria-current={i === state.current ? "true" : undefined}
+                  aria-describedby={
+                    bubble?.key === `row:${g.id}` && bubbleText?.synopsis
+                      ? BUBBLE_ID
+                      : undefined
+                  }
+                  onMouseEnter={(e) =>
+                    showBubble(`row:${g.id}`, e.currentTarget)
+                  }
+                  onFocus={(e) => showBubble(`row:${g.id}`, e.currentTarget)}
+                  onMouseLeave={hideBubble}
+                  onBlur={hideBubble}
                   onClick={() => dispatch({ type: "select", index: i })}
                 >
                   <span className="icon" aria-hidden="true">
@@ -145,6 +193,33 @@ export function RoutinePage() {
             );
           })}
         </ol>
+        {pick && (
+          <PickCard
+            ref={cardRef}
+            pick={pick}
+            busy={pickBusy}
+            describedBy={
+              bubble?.key === "pick" && bubbleText?.synopsis
+                ? BUBBLE_ID
+                : undefined
+            }
+            onAdd={() => add().catch(console.error)}
+            onAnother={() => another().catch(console.error)}
+            onFocusIn={() =>
+              cardRef.current && showBubble("pick", cardRef.current, true)
+            }
+            onFocusOut={hideBubble}
+          />
+        )}
+        {bubble && bubbleText?.synopsis && (
+          <SynopsisBubble
+            id={BUBBLE_ID}
+            name={bubbleText.name}
+            synopsis={bubbleText.synopsis}
+            top={bubble.top}
+            above={bubble.above}
+          />
+        )}
         <footer>
           <p className="aside-note">
             {isRoutineDone(state)

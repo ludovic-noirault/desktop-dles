@@ -85,6 +85,9 @@ button.primary {
 }
 .routine aside {
   flex: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   padding: 1rem;
   border-right: 1px solid var(--border);
   overflow-y: auto;
@@ -155,6 +158,71 @@ button.primary {
   background: color-mix(in srgb, var(--accent) 22%, transparent);
   opacity: 1;
   font-weight: 600;
+}
+.routine aside > * {
+  flex: none;
+}
+.pick-card {
+  margin-top: auto;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 0.5rem;
+  align-items: center;
+}
+.pick-label {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  opacity: 0.65;
+}
+.pick-name,
+.pick-category {
+  grid-column: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pick-category {
+  font-size: 0.8rem;
+  opacity: 0.65;
+}
+.pick-actions {
+  grid-column: 2;
+  grid-row: 2 / span 2;
+  display: flex;
+  gap: 0.35rem;
+}
+.synopsis-bubble {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  z-index: 2;
+  margin-top: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: Canvas;
+  color: CanvasText;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+.synopsis-bubble.above {
+  margin-top: -0.25rem;
+  transform: translateY(-100%);
+}
+.synopsis-bubble p {
+  margin: 0.25rem 0;
+}
+.synopsis-bubble .source {
+  font-size: 0.75rem;
+  opacity: 0.65;
 }
 .routine aside footer {
   margin-top: 0.75rem;
