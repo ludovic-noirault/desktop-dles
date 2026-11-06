@@ -7,6 +7,10 @@ export type PanelBounds = {
   height: number;
 };
 
+// View id of the pick being tried. SQLite AUTOINCREMENT ids start at 1, so
+// `game-0` never collides with a routine game.
+export const PICK_VIEW_ID = 0;
+
 // The Rust commands run on a multi-thread runtime and their mutex is not FIFO,
 // so each invoke starts only after the previous one settled.
 let queue: Promise<unknown> = Promise.resolve();

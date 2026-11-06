@@ -8,7 +8,9 @@ type Props = {
   ref?: Ref<HTMLElement>;
   pick: StoredPick;
   busy: boolean;
+  trying: boolean;
   describedBy?: string;
+  onTry(): void;
   onAdd(): void;
   onAnother(): void;
   onFocusIn(): void;
@@ -19,7 +21,9 @@ export function PickCard({
   ref,
   pick,
   busy,
+  trying,
   describedBy,
+  onTry,
   onAdd,
   onAnother,
   onFocusIn,
@@ -39,7 +43,7 @@ export function PickCard({
     // biome-ignore lint/a11y/noStaticElementInteractions: hover and focus-within only toggle a tooltip, the card has no action of its own
     <section
       ref={ref}
-      className="pick-card"
+      className={trying ? "pick-card selected" : "pick-card"}
       onMouseEnter={onFocusIn}
       onMouseLeave={onFocusOut}
       onFocus={onFocusIn}
@@ -49,7 +53,15 @@ export function PickCard({
         <Sparkles aria-hidden="true" size={14} />
         {strings.pick.title}
       </p>
-      <strong className="pick-name">{pick.name}</strong>
+      <button
+        type="button"
+        className="pick-name"
+        aria-label={strings.pick.tryLabel(pick.name)}
+        aria-pressed={trying}
+        onClick={onTry}
+      >
+        {pick.name}
+      </button>
       {pick.category && <span className="pick-category">{pick.category}</span>}
       <div className="pick-actions">
         <IconButton

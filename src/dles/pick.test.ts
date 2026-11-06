@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import type { Game } from "../routine/types";
 import type { StoredPick } from "../storage/pickRepo";
 import type { CatalogGame } from "./catalog";
-import { drawPick, synopsisTargets, visiblePick } from "./pick";
+import { drawPick, indexOfGame, synopsisTargets, visiblePick } from "./pick";
 
 const wordle: CatalogGame = {
   slug: "wordle",
@@ -95,5 +95,37 @@ describe("synopsisTargets", () => {
     expect(synopsisTargets([second, routineWordle], catalog, known)).toEqual([
       wordle,
     ]);
+  });
+});
+
+describe("indexOfGame", () => {
+  const order: Game[] = [
+    routineWordle,
+    { id: 2, name: "Globle", url: "https://globle-game.com/game", position: 1 },
+    { id: 3, name: "Wordle bis", url: routineWordle.url, position: 2 },
+  ];
+
+  test("finds a game through its URL key", () => {
+    expect(
+      indexOfGame(
+        order,
+        "https://www.nytimes.com/games/wordle/index.html?ref=dles.gg",
+      ),
+    ).toBe(0);
+  });
+
+  test("returns -1 for a URL not in the list", () => {
+    expect(indexOfGame(order, "https://third.example/play")).toBe(-1);
+  });
+
+  test("returns -1 for an http URL", () => {
+    expect(indexOfGame(order, "http://globle-game.com/game")).toBe(-1);
+  });
+
+  test("the first match wins", () => {
+    expect(indexOfGame(order, routineWordle.url)).toBe(0);
+    expect(indexOfGame([order[1], order[2], order[0]], routineWordle.url)).toBe(
+      1,
+    );
   });
 });

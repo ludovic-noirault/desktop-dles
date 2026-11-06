@@ -4,8 +4,10 @@ import {
   Circle,
   CircleCheck,
   CircleMinus,
+  Plus,
   RotateCw,
   ShieldOff,
+  Shuffle,
   SkipForward,
 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -15,11 +17,14 @@ import { SidebarResizer } from "../app/SidebarResizer";
 import { clampSidebarWidth } from "../app/sidebarWidth";
 import { gameUrlKey } from "../dles/catalog";
 import { PickCard } from "../dles/PickCard";
+import { indexOfGame } from "../dles/pick";
 import { SynopsisBubble } from "../dles/SynopsisBubble";
 import { useDailyPick } from "../dles/useDailyPick";
 import {
+  closeGame,
   hideGames,
   type PanelBounds,
+  PICK_VIEW_ID,
   reloadGame,
   setGameBounds,
   showGame,
@@ -68,6 +73,14 @@ export function RoutinePage() {
   } | null>(null);
   const asideRef = useRef<HTMLElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  // Trying shows the pick in its own webview without touching the routine.
+  const [trying, setTrying] = useState(false);
+  const showTrial = trying && pick !== null;
+  // URL loaded in `game-0`, null when that webview does not exist.
+  const trialUrl = useRef<string | null>(null);
+  // URL of a pick being added from the trial: select it once it is in the routine.
+  const pendingSelect = useRef<string | null>(null);
+  const pickUrl = pick?.url ?? null;
   const game = state.order[state.current];
   const total = state.order.length;
   const currentStatus = game ? state.statuses.get(game.id) : undefined;
@@ -75,16 +88,43 @@ export function RoutinePage() {
     (g) => state.statuses.get(g.id) === "finished",
   ).length;
 
+  // A pick that vanishes (added, day change, hidden) or is replaced ends its
+  // trial: `game-0` is closed so a later pick never reuses the old page.
+  // Declared before the panel effect so a close is queued before a new show.
+  useEffect(() => {
+    if (trialUrl.current !== null && trialUrl.current !== pickUrl) {
+      trialUrl.current = null;
+      closeGame(PICK_VIEW_ID).catch(console.error);
+    }
+    if (pickUrl === null) setTrying(false);
+  }, [pickUrl]);
+
+  // After "Add to routine" from the trial, the added game becomes current.
+  useEffect(() => {
+    const url = pendingSelect.current;
+    if (!url) return;
+    const index = indexOfGame(state.order, url);
+    if (index < 0) return;
+    pendingSelect.current = null;
+    dispatch({ type: "select", index });
+  }, [state.order, dispatch]);
+
   // Never awaited: the native webview loads on its own.
   useEffect(() => {
-    if (!game || !panelRef.current) {
+    if (!panelRef.current) return;
+    if (trying && pickUrl) {
+      trialUrl.current = pickUrl;
+      showGame(PICK_VIEW_ID, pickUrl, boundsOf(panelRef.current)).catch(
+        console.error,
+      );
+    } else if (game) {
+      showGame(game.id, game.url, boundsOf(panelRef.current)).catch(
+        console.error,
+      );
+    } else {
       hideGames().catch(console.error);
-      return;
     }
-    showGame(game.id, game.url, boundsOf(panelRef.current)).catch(
-      console.error,
-    );
-  }, [game]);
+  }, [game, trying, pickUrl]);
 
   // Separate from the effect above so switching games does not hide first.
   // gameViews runs commands in call order, so under StrictMode the last show wins.
@@ -146,7 +186,24 @@ export function RoutinePage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  useEffect(() => () => void hideGames().catch(console.error), []);
+  // A trial does not survive leaving the page: game-0 would keep a stale URL.
+  useEffect(
+    () => () => {
+      trialUrl.current = null;
+      hideGames().catch(console.error);
+      closeGame(PICK_VIEW_ID).catch(console.error);
+    },
+    [],
+  );
+
+  const tryPick = () => setTrying(true);
+  const addPick = () => {
+    if (trying && pick) pendingSelect.current = pick.url;
+    add().catch((error) => {
+      pendingSelect.current = null;
+      console.error(error);
+    });
+  };
 
   if (!game) {
     return (
@@ -198,7 +255,9 @@ export function RoutinePage() {
                 <button
                   type="button"
                   className={status}
-                  aria-current={i === state.current ? "true" : undefined}
+                  aria-current={
+                    !showTrial && i === state.current ? "true" : undefined
+                  }
                   aria-describedby={
                     bubble?.key === `row:${g.id}` && bubbleText?.synopsis
                       ? BUBBLE_ID
@@ -210,7 +269,10 @@ export function RoutinePage() {
                   onFocus={(e) => showBubble(`row:${g.id}`, e.currentTarget)}
                   onMouseLeave={hideBubble}
                   onBlur={hideBubble}
-                  onClick={() => dispatch({ type: "select", index: i })}
+                  onClick={() => {
+                    setTrying(false);
+                    dispatch({ type: "select", index: i });
+                  }}
                 >
                   <span className="icon" aria-hidden="true">
                     <StateIcon size={16} />
@@ -235,12 +297,14 @@ export function RoutinePage() {
             ref={cardRef}
             pick={pick}
             busy={pickBusy}
+            trying={showTrial}
             describedBy={
               bubble?.key === "pick" && bubbleText?.synopsis
                 ? BUBBLE_ID
                 : undefined
             }
-            onAdd={() => add().catch(console.error)}
+            onTry={tryPick}
+            onAdd={addPick}
             onAnother={() => another().catch(console.error)}
             onFocusIn={() =>
               cardRef.current && showBubble("pick", cardRef.current, true)
@@ -277,50 +341,86 @@ export function RoutinePage() {
         }}
       />
       <main>
-        <header className="panel-header">
-          <div className="game-title">
-            <strong>{game.name}</strong>
-            <span>{game.url}</span>
-          </div>
-          <span>{strings.routine.position(state.current + 1, total)}</span>
-          <IconButton
-            label={strings.routine.reload}
-            icon={RotateCw}
-            onClick={() =>
-              reloadGame(game.id, game.url, true).catch(console.error)
-            }
-          />
-          <IconButton
-            label={strings.routine.reloadUnblocked}
-            icon={ShieldOff}
-            onClick={() =>
-              reloadGame(game.id, game.url, false).catch(console.error)
-            }
-          />
-          <IconButton
-            label={strings.routine.ignore}
-            icon={SkipForward}
-            aria-pressed={currentStatus === "ignored"}
-            disabled={busy}
-            onClick={(e) => {
-              // A double click would answer the next game too.
-              if (e.detail > 1) return;
-              answer("ignored").catch(console.error);
-            }}
-          />
-          <IconButton
-            label={strings.routine.finished}
-            icon={Check}
-            className="primary"
-            aria-pressed={currentStatus === "finished"}
-            disabled={busy}
-            onClick={(e) => {
-              // A double click would answer the next game too.
-              if (e.detail > 1) return;
-              answer("finished").catch(console.error);
-            }}
-          />
-        </header>
+        {showTrial && pick ? (
+          <header className="panel-header">
+            <div className="game-title">
+              <strong>{pick.name}</strong>
+              <span>{strings.pick.trying}</span>
+            </div>
+            <IconButton
+              label={strings.routine.reload}
+              icon={RotateCw}
+              onClick={() =>
+                reloadGame(PICK_VIEW_ID, pick.url, true).catch(console.error)
+              }
+            />
+            <IconButton
+              label={strings.routine.reloadUnblocked}
+              icon={ShieldOff}
+              onClick={() =>
+                reloadGame(PICK_VIEW_ID, pick.url, false).catch(console.error)
+              }
+            />
+            <IconButton
+              label={strings.pick.another}
+              icon={Shuffle}
+              disabled={pickBusy}
+              onClick={() => another().catch(console.error)}
+            />
+            <IconButton
+              label={strings.pick.add}
+              icon={Plus}
+              className="primary"
+              disabled={pickBusy}
+              onClick={addPick}
+            />
+          </header>
+        ) : (
+          <header className="panel-header">
+            <div className="game-title">
+              <strong>{game.name}</strong>
+              <span>{game.url}</span>
+            </div>
+            <span>{strings.routine.position(state.current + 1, total)}</span>
+            <IconButton
+              label={strings.routine.reload}
+              icon={RotateCw}
+              onClick={() =>
+                reloadGame(game.id, game.url, true).catch(console.error)
+              }
+            />
+            <IconButton
+              label={strings.routine.reloadUnblocked}
+              icon={ShieldOff}
+              onClick={() =>
+                reloadGame(game.id, game.url, false).catch(console.error)
+              }
+            />
+            <IconButton
+              label={strings.routine.ignore}
+              icon={SkipForward}
+              aria-pressed={currentStatus === "ignored"}
+              disabled={busy}
+              onClick={(e) => {
+                // A double click would answer the next game too.
+                if (e.detail > 1) return;
+                answer("ignored").catch(console.error);
+              }}
+            />
+            <IconButton
+              label={strings.routine.finished}
+              icon={Check}
+              className="primary"
+              aria-pressed={currentStatus === "finished"}
+              disabled={busy}
+              onClick={(e) => {
+                // A double click would answer the next game too.
+                if (e.detail > 1) return;
+                answer("finished").catch(console.error);
+              }}
+            />
+          </header>
+        )}
         <div className="panel" ref={panelRef} />
       </main>
     </div>

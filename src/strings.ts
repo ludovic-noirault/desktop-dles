@@ -16,6 +16,8 @@ export const strings = {
     add: "Add to routine",
     another: "Another one",
     source: "From dles.gg",
+    trying: "Pick of the day",
+    tryLabel: (name: string) => `Try ${name}`,
   },
   routine: {
     finished: "Finished",

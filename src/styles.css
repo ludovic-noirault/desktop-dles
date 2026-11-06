@@ -183,11 +183,24 @@ button.primary {
   text-transform: uppercase;
   opacity: 0.65;
 }
+.pick-card.selected {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--accent);
+}
 .pick-name,
 .pick-category {
   grid-column: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+button.pick-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
 }
 .pick-category {
   font-size: 0.8rem;

@@ -72,3 +72,10 @@ export function withPickInfo(
     category: pick.category,
   });
 }
+
+// Index of the routine game that is the same game as `url`, -1 when none.
+export function indexOfGame(order: Game[], url: string): number {
+  const key = gameUrlKey(url);
+  if (!key) return -1;
+  return order.findIndex((game) => gameUrlKey(game.url) === key);
+}
