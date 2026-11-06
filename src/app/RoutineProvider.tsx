@@ -32,8 +32,14 @@ import {
   setDayStatus,
 } from "../storage/dayRepo";
 import { type Db, openDb } from "../storage/db";
-import { getShuffle, listGames } from "../storage/gamesRepo";
+import {
+  getShuffle,
+  getSidebarWidth,
+  listGames,
+  setSidebarWidth,
+} from "../storage/gamesRepo";
 import { strings } from "../strings";
+import { DEFAULT_SIDEBAR_WIDTH } from "./sidebarWidth";
 
 // A second openDb() opens a new pool on which the plugin skips migrations.
 let dbPromise: Promise<Db> | undefined;
@@ -43,13 +49,19 @@ export const getDb = (): Promise<Db> => {
 };
 
 const loadAll = async (db: Db) => {
-  const [games, shuffle, rows, lifetimes] = await Promise.all([
+  const [games, shuffle, rows, lifetimes, storedWidth] = await Promise.all([
     listGames(db),
     getShuffle(db),
     listDayRows(db),
     listLifetimes(db),
+    getSidebarWidth(db),
   ]);
-  return { games, shuffle, rows, lifetimes };
+  // A corrupt stored value reads back as NaN: fall back to the default.
+  const sidebarWidth =
+    storedWidth !== null && Number.isFinite(storedWidth)
+      ? storedWidth
+      : DEFAULT_SIDEBAR_WIDTH;
+  return { games, shuffle, rows, lifetimes, sidebarWidth };
 };
 
 type Loaded = {
@@ -57,6 +69,7 @@ type Loaded = {
   shuffle: boolean;
   rows: DayRow[];
   lifetimes: GameLifetime[];
+  sidebarWidth: number;
   initial: RoutineState;
 };
 
@@ -70,6 +83,8 @@ type RoutineContextValue = {
   busy: boolean;
   gameStreaks: ReadonlyMap<number, number>;
   dayStreak: number;
+  sidebarWidth: number;
+  saveSidebarWidth(width: number): Promise<void>;
 };
 
 const RoutineContext = createContext<RoutineContextValue | null>(null);
@@ -88,7 +103,8 @@ export function RoutineProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       const db = await getDb();
-      const { games, shuffle, rows, lifetimes } = await loadAll(db);
+      const { games, shuffle, rows, lifetimes, sidebarWidth } =
+        await loadAll(db);
       // StrictMode runs this twice; the cancelled run must not shuffle again.
       if (!cancelled) {
         const today = dayKey(new Date());
@@ -97,6 +113,7 @@ export function RoutineProvider({ children }: { children: ReactNode }) {
           shuffle,
           rows,
           lifetimes,
+          sidebarWidth,
           initial: initRoutine(games, shuffle, today, statusesOn(rows, today)),
         });
       }
@@ -121,6 +138,7 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
   const [rows, setRows] = useState(loaded.rows);
   const [lifetimes, setLifetimes] = useState(loaded.lifetimes);
   const [busy, setBusy] = useState(false);
+  const [sidebarWidth, setSidebarWidthState] = useState(loaded.sidebarWidth);
 
   // Refs let async callbacks and listeners read the latest state, not a stale closure.
   const stateRef = useRef(state);
@@ -180,6 +198,11 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
     }
   }, []);
 
+  const saveSidebarWidth = useCallback(async (width: number) => {
+    setSidebarWidthState(width);
+    await setSidebarWidth(await getDb(), width);
+  }, []);
+
   const reloadDay = useCallback(async () => {
     const today = dayKey(new Date());
     if (today === stateRef.current.day) return;
@@ -232,6 +255,8 @@ function Loaded({ loaded, children }: { loaded: Loaded; children: ReactNode }) {
         busy,
         gameStreaks,
         dayStreak,
+        sidebarWidth,
+        saveSidebarWidth,
       }}
     >
       {children}

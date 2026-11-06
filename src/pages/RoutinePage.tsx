@@ -8,9 +8,11 @@ import {
   ShieldOff,
   SkipForward,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconButton } from "../app/IconButton";
 import { useRoutine } from "../app/RoutineProvider";
+import { SidebarResizer } from "../app/SidebarResizer";
+import { clampSidebarWidth } from "../app/sidebarWidth";
 import {
   hideGames,
   type PanelBounds,
@@ -34,8 +36,19 @@ function boundsOf(el: HTMLElement): PanelBounds {
 }
 
 export function RoutinePage() {
-  const { state, dispatch, answer, busy, gameStreaks, dayStreak } =
-    useRoutine();
+  const {
+    state,
+    dispatch,
+    answer,
+    busy,
+    gameStreaks,
+    dayStreak,
+    sidebarWidth,
+    saveSidebarWidth,
+  } = useRoutine();
+  // Live width during a drag; null means the stored one.
+  const [draftWidth, setDraftWidth] = useState<number | null>(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const panelRef = useRef<HTMLDivElement>(null);
   const game = state.order[state.current];
   const total = state.order.length;
@@ -60,11 +73,27 @@ export function RoutinePage() {
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
-    const observer = new ResizeObserver(() =>
-      setGameBounds(boundsOf(panel)).catch(console.error),
-    );
+    // One update per frame: gameViews serialises every call, so a drag
+    // would otherwise queue one IPC round trip per pixel.
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setGameBounds(boundsOf(panel)).catch(console.error);
+      });
+    });
     observer.observe(panel);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => () => void hideGames().catch(console.error), []);
@@ -78,9 +107,11 @@ export function RoutinePage() {
     );
   }
 
+  const width = clampSidebarWidth(draftWidth ?? sidebarWidth, windowWidth);
+
   return (
     <div className="routine">
-      <aside>
+      <aside style={{ width }}>
         <h2>{strings.aside.title}</h2>
         <ol>
           {state.order.map((g, i) => {
@@ -123,6 +154,15 @@ export function RoutinePage() {
           <p className="aside-note">{strings.aside.dayStreak(dayStreak)}</p>
         </footer>
       </aside>
+      <SidebarResizer
+        width={width}
+        onDrag={(w) => setDraftWidth(clampSidebarWidth(w, window.innerWidth))}
+        onCommit={(w) => {
+          const next = clampSidebarWidth(w, window.innerWidth);
+          setDraftWidth(null);
+          saveSidebarWidth(next).catch(console.error);
+        }}
+      />
       <main>
         <header className="panel-header">
           <div className="game-title">

@@ -8,6 +8,7 @@ export const strings = {
     done: "Routine done",
     dayStreak: (n: number) => `Routine streak ${n} ${n === 1 ? "day" : "days"}`,
     gameStreak: (n: number) => `${n}-day streak`,
+    resize: "Resize the game list",
     status: { todo: "To do", finished: "Finished", ignored: "Ignored" },
   },
   routine: {

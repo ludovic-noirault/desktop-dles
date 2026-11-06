@@ -84,11 +84,23 @@ button.primary {
   display: flex;
 }
 .routine aside {
-  width: 220px;
   flex: none;
   padding: 1rem;
   border-right: 1px solid var(--border);
   overflow-y: auto;
+}
+.sidebar-resizer {
+  flex: none;
+  width: 6px;
+  margin-left: -3px;
+  z-index: 1;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer:active,
+.sidebar-resizer:focus-visible {
+  background: var(--accent);
 }
 .routine aside h2 {
   font-size: 0.8rem;
