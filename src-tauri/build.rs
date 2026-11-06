@@ -9,6 +9,8 @@ fn main() {
             "reload_game",
             "close_game",
             "export_games",
+            "dles_catalog",
+            "dles_game_page",
         ])),
     )
     .expect("failed to run tauri-build");

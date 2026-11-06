@@ -4,7 +4,7 @@ import {
   initRoutine,
   isRoutineDone,
   isValidGameUrl,
-  moveGame,
+  moveGameTo,
   nextToDo,
   routineReducer,
   toggleAnswer,
@@ -42,16 +42,17 @@ test("buildRoutine shuffles with the given rng and keeps every game", () => {
   expect(out.map((x) => x.id)).not.toEqual([1, 2, 3]);
 });
 
-test("moveGame swaps and renumbers, and is a no-op at the edges", () => {
-  expect(
-    moveGame([g(1, 0), g(2, 1)], 2, "up").map((x) => [x.id, x.position]),
-  ).toEqual([
-    [2, 0],
-    [1, 1],
-  ]);
-  expect(moveGame([g(1, 0), g(2, 1)], 1, "up").map((x) => x.id)).toEqual([
-    1, 2,
-  ]);
+test("moveGameTo moves one game and renumbers from 0", () => {
+  const four = [g(1, 0), g(2, 1), g(3, 2), g(4, 3)];
+  const ids = (list: ReturnType<typeof moveGameTo>) => list.map((x) => x.id);
+  const moved = moveGameTo(four, 3, 0);
+  expect(ids(moved)).toEqual([4, 1, 2, 3]);
+  expect(moved.map((x) => x.position)).toEqual([0, 1, 2, 3]);
+  expect(ids(moveGameTo(four, 0, 3))).toEqual([2, 3, 4, 1]);
+  expect(ids(moveGameTo(four, 2, 2))).toEqual([1, 2, 3, 4]);
+  expect(ids(moveGameTo(four, 1, 4))).toEqual([1, 2, 3, 4]);
+  expect(ids(moveGameTo(four, 1, -1))).toEqual([1, 2, 3, 4]);
+  expect(ids(moveGameTo(four, 9, 0))).toEqual([1, 2, 3, 4]);
 });
 
 test("initRoutine opens the first game still to do", () => {

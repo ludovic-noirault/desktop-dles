@@ -13,6 +13,8 @@
     "allow-reload-game",
     "allow-close-game",
     "allow-export-games",
+    "allow-dles-catalog",
+    "allow-dles-game-page",
     "sql:default",
     "sql:allow-load",
     "sql:allow-select",

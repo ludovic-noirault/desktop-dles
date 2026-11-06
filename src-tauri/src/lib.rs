@@ -1,4 +1,5 @@
 mod blocking;
+mod dles;
 mod games;
 mod sharing;
 
@@ -24,9 +25,21 @@ pub fn run() {
             sql: include_str!("../migrations/002_day_status.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "daily_pick",
+            sql: include_str!("../migrations/003_daily_pick.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
     tauri::Builder::default()
         .manage(blocking::Bypass::default())
+        // The daily pick is optional: a client that cannot be built must not stop the app.
+        .manage(
+            dles::DlesClient::new()
+                .map_err(|e| eprintln!("dles.gg client unavailable: {e}"))
+                .ok(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
@@ -41,7 +54,9 @@ pub fn run() {
             games::hide_games,
             games::reload_game,
             games::close_game,
-            sharing::export_games
+            sharing::export_games,
+            dles::dles_catalog,
+            dles::dles_game_page
         ])
         .setup(|app| {
             blocking::init(app.handle());

@@ -1,15 +1,17 @@
 import { beforeEach, expect, test } from "vitest";
-import { moveGame } from "../routine/routine";
+import { moveGameTo } from "../routine/routine";
 import { listDayRows, listLifetimes, setDayStatus } from "./dayRepo";
 import type { Db } from "./db";
 import {
   addGame,
   addGames,
   getShuffle,
+  getSidebarWidth,
   listGames,
   removeGame,
   saveOrder,
   setShuffle,
+  setSidebarWidth,
   updateGame,
 } from "./gamesRepo";
 import { createTestDb } from "./testDb";
@@ -72,7 +74,7 @@ test("addGame after a removal takes the next free position", async () => {
 
 test("saveOrder persists a new order", async () => {
   const games = await listGames(db);
-  await saveOrder(db, moveGame(games, games[1].id, "up"));
+  await saveOrder(db, moveGameTo(games, 1, 0));
   expect((await listGames(db))[0].name).toBe("Scrandle");
 });
 
@@ -115,4 +117,12 @@ test("addGames appends in the given order with today as added day", async () => 
   ]);
   const lifetimes = await listLifetimes(db);
   expect(lifetimes.filter((l) => l.addedDay === "2026-11-06")).toHaveLength(2);
+});
+
+test("sidebar width is null on a fresh database, then saved and updated", async () => {
+  expect(await getSidebarWidth(db)).toBeNull();
+  await setSidebarWidth(db, 300);
+  expect(await getSidebarWidth(db)).toBe(300);
+  await setSidebarWidth(db, 260);
+  expect(await getSidebarWidth(db)).toBe(260);
 });

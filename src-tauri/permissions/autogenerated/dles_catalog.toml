@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-dles-catalog"
+description = "Enables the dles_catalog command without any pre-configured scope."
+commands.allow = ["dles_catalog"]
+
+[[permission]]
+identifier = "deny-dles-catalog"
+description = "Denies the dles_catalog command without any pre-configured scope."
+commands.deny = ["dles_catalog"]

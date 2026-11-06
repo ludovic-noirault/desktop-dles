@@ -129,6 +129,7 @@ In the order they would come:
 3. Result capture: read the clipboard after the game's "share" button.
 4. JSON export and import of the history.
 5. Daily recommendation: one random game picked from https://dles.gg/ (no known API, check its terms).
+   Specified, with hover synopses and a resizable sidebar, in `2026-11-06-daily-pick-design.md`.
 6. Translations, building on the strings module.
 7. Notification at each game's reset time.
 8. Sync between machines.

@@ -84,3 +84,18 @@ export async function setShuffle(db: Db, value: boolean): Promise<void> {
     value ? "1" : "0",
   ]);
 }
+
+export async function getSidebarWidth(db: Db): Promise<number | null> {
+  const rows = await db.select<{ value: string }>(
+    "SELECT value FROM settings WHERE key = 'sidebar_width'",
+  );
+  return rows[0] ? Number(rows[0].value) : null;
+}
+
+// Upsert: unlike 'shuffle', this key is not seeded by the first migration.
+export async function setSidebarWidth(db: Db, width: number): Promise<void> {
+  await db.execute(
+    "INSERT INTO settings (key, value) VALUES ('sidebar_width', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    [String(width)],
+  );
+}
