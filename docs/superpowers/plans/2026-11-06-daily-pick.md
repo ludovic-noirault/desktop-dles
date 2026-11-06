@@ -381,7 +381,7 @@ git commit -m "feat: show the pick of the day and hover synopses"
 
 - [x] **Step 1: Add to `AGENTS.md`**, under "Decisions to follow, not re-derive": `- dles.gg is read only through the `dles_catalog` and `dles_game_page` Rust commands, which build the URLs themselves. The UI never sends a URL to fetch.`
 
-- [ ] **Step 2: Run the spec's manual check**, `docs/superpowers/specs/2026-11-06-daily-pick-design.md` § Manual check, items 1 to 12, on macOS with `pnpm tauri dev`. Write any failure down as a new task here before fixing it.
+- [x] **Step 2: Run the spec's manual check**, `docs/superpowers/specs/2026-11-06-daily-pick-design.md` § Manual check, items 1 to 13, on macOS with `pnpm tauri dev`. Write any failure down as a new task here before fixing it.
 
 - [x] **Step 3: Run every gate of `docs/agents/verify.md`.**
 
