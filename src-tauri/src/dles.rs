@@ -76,11 +76,7 @@ fn check_status(status: reqwest::StatusCode) -> Result<(), String> {
 }
 
 async fn get_text(client: &reqwest::Client, url: &str) -> Result<String, String> {
-    let mut response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut response = client.get(url).send().await.map_err(|e| e.to_string())?;
     check_status(response.status())?;
     let mut buf = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
@@ -140,7 +136,11 @@ mod tests {
     fn only_2xx_statuses_are_ok() {
         use reqwest::StatusCode;
         assert!(check_status(StatusCode::OK).is_ok());
-        for bad in [StatusCode::FOUND, StatusCode::NOT_FOUND, StatusCode::BAD_GATEWAY] {
+        for bad in [
+            StatusCode::FOUND,
+            StatusCode::NOT_FOUND,
+            StatusCode::BAD_GATEWAY,
+        ] {
             assert!(check_status(bad).is_err(), "{bad}");
         }
     }
