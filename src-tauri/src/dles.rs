@@ -66,13 +66,22 @@ fn push_capped(buf: &mut Vec<u8>, chunk: &[u8], cap: usize) -> Result<(), String
     Ok(())
 }
 
+// `error_for_status` lets a 3xx through, and the redirect policy returns one when it stops a hop.
+fn check_status(status: reqwest::StatusCode) -> Result<(), String> {
+    if status.is_success() {
+        Ok(())
+    } else {
+        Err(format!("unexpected status {status}"))
+    }
+}
+
 async fn get_text(client: &reqwest::Client, url: &str) -> Result<String, String> {
     let mut response = client
         .get(url)
         .send()
         .await
-        .and_then(|r| r.error_for_status())
         .map_err(|e| e.to_string())?;
+    check_status(response.status())?;
     let mut buf = Vec::new();
     while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
         push_capped(&mut buf, &chunk, MAX_BYTES)?;
@@ -125,6 +134,15 @@ mod tests {
         assert!(!is_dles_url(&url("https://www.dles.gg/")));
         assert!(!is_dles_url(&url("https://dles.gg.evil.com/")));
         assert!(!is_dles_url(&url("https://evil.com/")));
+    }
+
+    #[test]
+    fn only_2xx_statuses_are_ok() {
+        use reqwest::StatusCode;
+        assert!(check_status(StatusCode::OK).is_ok());
+        for bad in [StatusCode::FOUND, StatusCode::NOT_FOUND, StatusCode::BAD_GATEWAY] {
+            assert!(check_status(bad).is_err(), "{bad}");
+        }
     }
 
     #[test]
