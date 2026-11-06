@@ -27,7 +27,6 @@ impl Bypass {
         self.0.lock().unwrap().remove(label);
     }
 
-    #[cfg_attr(not(windows), allow(dead_code))] // only the Windows request handler reads it
     pub fn contains(&self, label: &str) -> bool {
         self.0.lock().unwrap().contains(label)
     }
@@ -92,6 +91,20 @@ pub fn attach(webview: &Webview) {
     #[cfg(windows)]
     windows::attach(webview);
     #[cfg(not(any(target_os = "macos", windows)))]
+    let _ = webview;
+}
+
+/// Installs the rules again before a plain reload, for a game opened before they were ready.
+pub fn refresh(webview: &Webview) {
+    // Removing first means a list already attached is never added a second time.
+    #[cfg(target_os = "macos")]
+    {
+        macos::detach(webview);
+        attach(webview);
+    }
+    // Nothing to do elsewhere: the Windows handler, installed once per webview, reads the engine
+    // and `Bypass` on every request, and a second attach would register a second handler.
+    #[cfg(not(target_os = "macos"))]
     let _ = webview;
 }
 

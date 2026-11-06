@@ -3,6 +3,7 @@
 //! nothing of the app runs in the game page.
 
 use std::cell::RefCell;
+use std::panic::catch_unwind;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
@@ -138,7 +139,16 @@ fn compile_in_background(
         .spawn({
             let progress = progress.clone();
             move || {
-                let Some((json, count)) = content_rules_json(text) else {
+                // A panic here would skip `finish`, leaving every game waiting ATTACH_TIMEOUT.
+                let converted = match catch_unwind(|| content_rules_json(text)) {
+                    Ok(converted) => converted,
+                    Err(_) => {
+                        eprintln!("content blocking: converting {name} panicked, skipped");
+                        progress.finish(false);
+                        return;
+                    }
+                };
+                let Some((json, count)) = converted else {
                     eprintln!("content blocking: {name} has no convertible rule, skipped");
                     progress.finish(false);
                     return;

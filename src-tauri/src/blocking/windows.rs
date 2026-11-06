@@ -86,10 +86,17 @@ fn install(pw: &PlatformWebview, label: String) -> ::windows::core::Result<()> {
                 COREWEBVIEW2_WEB_RESOURCE_REQUEST_SOURCE_KINDS_ALL,
             )?
         },
-        // SAFETY: as above.
-        Err(_) => unsafe {
-            webview.AddWebResourceRequestedFilter(&filter, COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL)?
-        },
+        Err(_) => {
+            eprintln!(
+                "content blocking: {label} out-of-process iframes and workers are not filtered on \
+                 this WebView2 runtime"
+            );
+            // SAFETY: as above.
+            unsafe {
+                webview
+                    .AddWebResourceRequestedFilter(&filter, COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL)?
+            }
+        }
     }
     // The page is read from the event's sender rather than captured: a handler holding its own
     // webview would keep it alive forever.

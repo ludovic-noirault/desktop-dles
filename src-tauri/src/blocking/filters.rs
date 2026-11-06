@@ -36,10 +36,15 @@ pub fn rule_list_id(name: &str) -> String {
 
 #[cfg(any(windows, test))]
 pub fn build_engine() -> adblock::Engine {
-    use adblock::lists::{FilterSet, ParseOptions};
+    use adblock::lists::{FilterSet, ParseOptions, RuleTypes};
+    // The engine only answers network requests, so cosmetic rules would only cost memory.
+    let options = ParseOptions {
+        rule_types: RuleTypes::NetworkOnly,
+        ..Default::default()
+    };
     let mut set = FilterSet::new(false);
     for list in LISTS {
-        set.add_filter_list(list.text.to_string(), ParseOptions::default());
+        set.add_filter_list(list.text.to_string(), options);
     }
     adblock::Engine::new_with_filter_set(set)
 }

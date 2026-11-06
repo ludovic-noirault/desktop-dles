@@ -148,9 +148,13 @@ pub async fn reload_game(
     let label = game_label(id);
     let webview = app.get_webview(&label).ok_or("game webview not found")?;
     // A plain reload keeps a bypassed game bypassed: only the unblocked reload changes state.
+    // Otherwise it re-applies the rules, which may have become ready after the game opened.
+    // As in show_game, the queued with_webview calls run before the navigation.
     if !blocking {
         bypass.insert(&label);
         blocking::detach(&webview);
+    } else if !bypass.contains(&label) {
+        blocking::refresh(&webview);
     }
     webview.navigate(url).map_err(|e| e.to_string())
 }
