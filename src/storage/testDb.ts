@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import type { Db } from "./db";
 
-const migrations = ["001_init.sql", "002_day_status.sql"].map((file) =>
+const migrations = [
+  "001_init.sql",
+  "002_day_status.sql",
+  "003_daily_pick.sql",
+].map((file) =>
   readFileSync(
     new URL(`../../src-tauri/migrations/${file}`, import.meta.url),
     "utf8",

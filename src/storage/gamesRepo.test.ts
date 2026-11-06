@@ -6,10 +6,12 @@ import {
   addGame,
   addGames,
   getShuffle,
+  getSidebarWidth,
   listGames,
   removeGame,
   saveOrder,
   setShuffle,
+  setSidebarWidth,
   updateGame,
 } from "./gamesRepo";
 import { createTestDb } from "./testDb";
@@ -115,4 +117,12 @@ test("addGames appends in the given order with today as added day", async () => 
   ]);
   const lifetimes = await listLifetimes(db);
   expect(lifetimes.filter((l) => l.addedDay === "2026-11-06")).toHaveLength(2);
+});
+
+test("sidebar width is null on a fresh database, then saved and updated", async () => {
+  expect(await getSidebarWidth(db)).toBeNull();
+  await setSidebarWidth(db, 300);
+  expect(await getSidebarWidth(db)).toBe(300);
+  await setSidebarWidth(db, 260);
+  expect(await getSidebarWidth(db)).toBe(260);
 });

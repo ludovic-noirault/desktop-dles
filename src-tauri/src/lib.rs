@@ -25,6 +25,12 @@ pub fn run() {
             sql: include_str!("../migrations/002_day_status.sql"),
             kind: MigrationKind::Up,
         },
+        Migration {
+            version: 3,
+            description: "daily_pick",
+            sql: include_str!("../migrations/003_daily_pick.sql"),
+            kind: MigrationKind::Up,
+        },
     ];
     tauri::Builder::default()
         .manage(blocking::Bypass::default())
