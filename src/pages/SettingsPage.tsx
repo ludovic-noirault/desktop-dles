@@ -1,10 +1,25 @@
-import { LogIn, LogOut, Pencil, Plus, Trash2 } from "lucide-react";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import {
+  GripVertical,
+  LogIn,
+  LogOut,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  type PointerEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { dropIndex } from "../app/dragOrder";
 import { IconButton } from "../app/IconButton";
 import { getDb, useRoutine } from "../app/RoutineProvider";
 import { closeGame } from "../games/gameViews";
 import { dayKey } from "../routine/day";
-import { isValidGameUrl, moveGame } from "../routine/routine";
+import { isValidGameUrl, moveGameTo } from "../routine/routine";
 import type { Game } from "../routine/types";
 import { ExportDialog } from "../sharing/ExportDialog";
 import { ImportDialog } from "../sharing/ImportDialog";
@@ -32,6 +47,12 @@ export function SettingsPage() {
   const editNameInput = useRef<HTMLInputElement>(null);
   const editButtons = useRef(new Map<number, HTMLButtonElement>());
   const lastEdited = useRef<number | null>(null);
+
+  const handles = useRef(new Map<number, HTMLButtonElement>());
+  const rows = useRef<HTMLLIElement[]>([]);
+  const [drag, setDrag] = useState<{ from: number; to: number } | null>(null);
+  const dragMidpoints = useRef<number[]>([]);
+  const refocus = useRef<number | null>(null);
 
   const [importing, setImporting] = useState(false);
   const importButton = useRef<HTMLButtonElement>(null);
@@ -64,6 +85,51 @@ export function SettingsPage() {
     else if (lastEdited.current !== null)
       editButtons.current.get(lastEdited.current)?.focus();
   }, [editingId]);
+
+  // After a keyboard move the list re-renders in the new order; give the focus
+  // back to the handle of the game that moved.
+  useEffect(() => {
+    if (refocus.current === null) return;
+    handles.current.get(refocus.current)?.focus();
+    refocus.current = null;
+  });
+
+  const startDrag = (e: PointerEvent<HTMLButtonElement>, from: number) => {
+    if (busy || e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragMidpoints.current = rows.current.map((row) => {
+      const r = row.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+    setDrag({ from, to: from });
+  };
+
+  const moveDrag = (e: PointerEvent<HTMLButtonElement>) => {
+    if (!drag) return;
+    const to = dropIndex(dragMidpoints.current, e.clientY, drag.from);
+    if (to !== drag.to) setDrag({ from: drag.from, to });
+  };
+
+  const endDrag = (e: PointerEvent<HTMLButtonElement>) => {
+    if (!drag) return;
+    const { from, to } = drag;
+    setDrag(null);
+    if (e.currentTarget.hasPointerCapture(e.pointerId))
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    if (from !== to) {
+      refocus.current = games[from].id;
+      write((db) => saveOrder(db, moveGameTo(games, from, to)));
+    }
+  };
+
+  const onHandleKey = (e: KeyboardEvent<HTMLButtonElement>, i: number) => {
+    const to = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : i;
+    if (to === i) return;
+    e.preventDefault();
+    if (busy || to < 0 || to >= games.length) return;
+    refocus.current = games[i].id;
+    write((db) => saveOrder(db, moveGameTo(games, i, to)));
+  };
 
   const checkUrl = (value: string, setInvalid: (invalid: boolean) => void) => {
     const valid = isValidGameUrl(value);
@@ -128,7 +194,19 @@ export function SettingsPage() {
       </div>
       <ul>
         {games.map((g, i) => (
-          <li key={g.id}>
+          <li
+            key={g.id}
+            ref={(el) => {
+              if (el) rows.current[i] = el;
+            }}
+            className={
+              drag && drag.from !== drag.to && drag.to === i
+                ? drag.to > drag.from
+                  ? "drop-after"
+                  : "drop-before"
+                : undefined
+            }
+          >
             {editingId === g.id ? (
               <form
                 className="edit-form"
@@ -165,30 +243,25 @@ export function SettingsPage() {
               </form>
             ) : (
               <>
+                <IconButton
+                  label={strings.settings.reorder(g.name)}
+                  icon={GripVertical}
+                  className="drag-handle"
+                  ref={(el) => {
+                    if (el) handles.current.set(g.id, el);
+                    else handles.current.delete(g.id);
+                  }}
+                  disabled={busy}
+                  onPointerDown={(e) => startDrag(e, i)}
+                  onPointerMove={moveDrag}
+                  onPointerUp={endDrag}
+                  onPointerCancel={() => setDrag(null)}
+                  onKeyDown={(e) => onHandleKey(e, i)}
+                />
                 <span className="game-title">
                   <strong>{g.name}</strong>
                   <span>{g.url}</span>
                 </span>
-                <button
-                  type="button"
-                  aria-label={strings.settings.moveUp(g.name)}
-                  disabled={busy || i === 0}
-                  onClick={() =>
-                    write((db) => saveOrder(db, moveGame(games, g.id, "up")))
-                  }
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  aria-label={strings.settings.moveDown(g.name)}
-                  disabled={busy || i === games.length - 1}
-                  onClick={() =>
-                    write((db) => saveOrder(db, moveGame(games, g.id, "down")))
-                  }
-                >
-                  ↓
-                </button>
                 <IconButton
                   label={strings.settings.remove(g.name)}
                   icon={Trash2}

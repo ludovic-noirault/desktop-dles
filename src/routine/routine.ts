@@ -27,16 +27,12 @@ export function buildRoutine(
   return out;
 }
 
-export function moveGame(
-  games: Game[],
-  id: number,
-  direction: "up" | "down",
-): Game[] {
+export function moveGameTo(games: Game[], from: number, to: number): Game[] {
   const out = byPosition(games);
-  const from = out.findIndex((x) => x.id === id);
-  const to = direction === "up" ? from - 1 : from + 1;
-  if (from !== -1 && to >= 0 && to < out.length) {
-    [out[from], out[to]] = [out[to], out[from]];
+  const inRange = (i: number) =>
+    Number.isInteger(i) && i >= 0 && i < out.length;
+  if (from !== to && inRange(from) && inRange(to)) {
+    out.splice(to, 0, ...out.splice(from, 1));
   }
   return out.map((x, position) => ({ ...x, position }));
 }

@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from "vitest";
-import { moveGame } from "../routine/routine";
+import { moveGameTo } from "../routine/routine";
 import { listDayRows, listLifetimes, setDayStatus } from "./dayRepo";
 import type { Db } from "./db";
 import {
@@ -74,7 +74,7 @@ test("addGame after a removal takes the next free position", async () => {
 
 test("saveOrder persists a new order", async () => {
   const games = await listGames(db);
-  await saveOrder(db, moveGame(games, games[1].id, "up"));
+  await saveOrder(db, moveGameTo(games, 1, 0));
   expect((await listGames(db))[0].name).toBe("Scrandle");
 });
 

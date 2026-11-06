@@ -428,3 +428,17 @@ button.link {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+.settings .drag-handle {
+  cursor: grab;
+  touch-action: none;
+}
+.settings .drag-handle:active {
+  cursor: grabbing;
+}
+.settings li.drop-before {
+  box-shadow: 0 -2px 0 var(--accent);
+}
+.settings li.drop-after {
+  box-shadow: 0 2px 0 var(--accent);
+}
