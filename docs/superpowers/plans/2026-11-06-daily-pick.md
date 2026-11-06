@@ -391,3 +391,48 @@ git commit -m "feat: show the pick of the day and hover synopses"
 git add AGENTS.md docs/superpowers/plans/2026-11-06-daily-pick.md
 git commit -m "docs: record daily pick progress"
 ```
+
+### Task 10: Try the pick before adding it
+
+Added after Ludo's first look at the build (spec § "Trying the pick", Goal 9, manual check 13).
+
+**Files:**
+- Modify: `src/games/gameViews.ts`, `src/dles/pick.ts`, `src/dles/pick.test.ts`, `src/dles/useDailyPick.ts`, `src/dles/PickCard.tsx`, `src/pages/RoutinePage.tsx`, `src/strings.ts`, `src/styles.css`
+
+**Interfaces:**
+- Consumes: `showGame`, `closeGame`, `reloadGame`, `hideGames` (`src/games/gameViews.ts`); `useDailyPick()`; `gameUrlKey`; `useRoutine()` (`dispatch({ type: "select", index })`, `state.order`).
+- Produces:
+  - `export const PICK_VIEW_ID = 0;` in `src/games/gameViews.ts`, with a comment: SQLite `AUTOINCREMENT` ids start at 1, so `game-0` never collides with a routine game.
+  - `indexOfGame(order: Game[], url: string): number` in `src/dles/pick.ts`: index of the first game whose URL key equals `gameUrlKey(url)`, `-1` when none or when the key is `null`.
+  - `strings.pick.trying: "Pick of the day"` (header subtitle) and `strings.pick.tryLabel(name)`: `"Try ${name}"` (accessible name of the card's name button).
+
+- [ ] **Step 1: Write the failing tests** for `indexOfGame`: Wordle stored as `https://www.nytimes.com/games/wordle` is found for `https://www.nytimes.com/games/wordle/index.html?ref=dles.gg`; a URL not in the list gives `-1`; an `http://` URL gives `-1`; with two matches the first index wins.
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `pnpm vitest run src/dles/pick.test.ts`
+Expected: FAIL, `indexOfGame` not exported.
+
+- [ ] **Step 3: Implement `indexOfGame` and `PICK_VIEW_ID`.**
+
+- [ ] **Step 4: Wire the trial** (load the `design` skill first).
+  - `RoutinePage` holds `trying: boolean`. While `trying` and a visible pick exists, the panel effect shows `PICK_VIEW_ID` with the pick's URL instead of the current routine game; otherwise it shows the routine game as today.
+  - The card's game name becomes a button (`aria-label={strings.pick.tryLabel(name)}`, `aria-pressed={trying}`) that sets `trying`. While trying, no routine row has `aria-current`, and the card has a selected style.
+  - Header while trying: the pick's name with `strings.pick.trying` under it (no position counter), then Reload and Reload without blocking (`reloadGame(PICK_VIEW_ID, pick.url, …)`), Add to routine (`Plus`, primary) and Another one (`Shuffle`), sharing the card's `busy`.
+  - Clicking a routine row sets `trying` to false and selects the row; `game-0` is hidden, not closed.
+  - "Another one": `closeGame(PICK_VIEW_ID)` before the new pick is shown; `trying` stays true if a new pick exists, else becomes false.
+  - "Add to routine": after the add and refresh, `closeGame(PICK_VIEW_ID)`, set `trying` false, and if the trial was open select `indexOfGame(state.order, pick.url)` so the added game becomes the current routine game.
+  - Day change, or the pick becoming hidden for any reason: `closeGame(PICK_VIEW_ID)` and `trying` false.
+  - Trying records nothing: no `answer`, no day status.
+
+- [ ] **Step 5: Run the gates**
+
+Run: `pnpm test && pnpm lint && pnpm build && (cd src-tauri && cargo test && cargo clippy -- -D warnings)`
+Expected: PASS, no new lint warning.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src docs/superpowers/plans/2026-11-06-daily-pick.md
+git commit -m "feat: try the pick of the day before adding it"
+```

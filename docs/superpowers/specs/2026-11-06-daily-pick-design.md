@@ -27,7 +27,8 @@ updated to point here. Merging it releases v0.7.0.
 - The card has two actions: "Add to routine" and "Another one". "Another one" draws a new pick at once.
 - A game skipped with "Another one" can come back on a later day.
 - A game already in the routine is never picked.
-- Ludo decides on the synopsis, shown on hover. He does not try the game before choosing.
+- Ludo reads the synopsis on hover, and can also try the game before choosing (changed 2026-11-06, see
+  "Trying the pick" below; the first version said he decides on the synopsis alone).
 - The synopsis also shows on hover for the games of his routine.
 - Layout: option C of the brainstorming mockups. The card sits at the bottom of the sidebar, between the
   routine list and the day counters. It shows the label "Pick of the day", the game's name, its category,
@@ -40,7 +41,7 @@ updated to point here. Merging it releases v0.7.0.
     or imported. The card then disappears until tomorrow.
   - Without network, or when dles.gg does not answer, the card is absent and nothing else is affected.
   - A routine game that cannot be found on dles.gg has no synopsis.
-  - The card itself is not clickable. Clicking a routine game keeps its current behaviour.
+  - Clicking a routine game keeps its current behaviour.
   - The card stays hidden while the pick loads. If loading fails, it stays hidden, with no error message,
     and the app tries again at the next launch.
   - The synopsis bubble says "From dles.gg". A game without a synopsis shows no bubble.
@@ -90,12 +91,25 @@ updated to point here. Merging it releases v0.7.0.
    down arrow keys move the game one place and keep the focus on its handle.
 8. The buttons listed in "Decided by Ludo" show their icon instead of their text. Hovering one shows its
    label. A screen reader announces the same label.
-9. Nothing on the page waits for dles.gg. The routine works the same with dles.gg down or slow.
+9. Clicking the card's game name opens the pick in the panel as described in "Trying the pick". The name
+   is a button, reachable from the keyboard, and shows as selected while the trial is open.
+10. Nothing on the page waits for dles.gg. The routine works the same with dles.gg down or slow.
+
+- Trying the pick (2026-11-06, after the first build). Agreed after it was proposed:
+  - Clicking the card (the game's name) opens the game in the right panel, like a routine game, with the same
+    content blocking and the same shared session.
+  - While trying, the card shows as selected and no routine row does. The panel header shows the game's name
+    with "Pick of the day", and the buttons Reload, Add to routine and Another one in place of Ignore and
+    Finished. Trying records nothing: no day state, no streak.
+  - "Another one" while trying opens the new pick in the panel at once.
+  - "Add to routine" while trying adds the game at the end of the routine; it stays open and becomes the
+    current routine game.
+  - Clicking a routine row hides the trial game without closing it, as with other games.
+  - The trial page is closed when the game is skipped or when the day changes.
 
 ## Non-goals
 
 - Filtering the pick by category, rating, or anything else.
-- Trying the picked game before adding it.
 - Remembering skipped games beyond the day, or a "never show again" action.
 - Synopses in Settings, editing a synopsis, or a synopsis for games not on dles.gg.
 - Any other data from dles.gg: rating, cover image, reviews, related games, "how to play".
@@ -200,6 +214,14 @@ updated to point here. Merging it releases v0.7.0.
   the day. A page fetched and parsed with no synopsis found is not requested again. A network error or a
   timeout stores nothing, so the game is tried again at the next launch. If dles.gg changes its markup, the
   `fix/*` release that updates the parser also clears the rows without synopsis in a migration.
+- The trial webview reuses the game webview commands with the reserved id `0` (label `game-0`): SQLite
+  `AUTOINCREMENT` ids start at 1, so it never collides with a routine game, and no new IPC command or
+  permission is needed. Because `show_game` only shows an existing webview, the UI closes `game-0` before
+  opening another pick, after an add, and on a day change.
+- After "Add to routine" the game reopens as a routine game in its own webview, so its page loads once more.
+  Its session (cookies, local storage) is the shared store, so a game in progress usually survives.
+- The trial header also has "Reload without blocking", like a routine game's header, for a page the blocker
+  breaks.
 - An empty routine keeps today's empty state with no sidebar, so no card. The pick is for people who already
   have a routine.
 
@@ -236,3 +258,8 @@ updated to point here. Merging it releases v0.7.0.
     the routine, and survives a restart. Focus a handle, press the down arrow: the game moves one place.
 12. Every icon button of the game panel, the sidebar, the card and Settings shows its label on hover, and
     the label is not hidden under the game page.
+13. Click the card's game name: the game opens in the panel, the card shows as selected, the header shows
+    "Pick of the day" with Reload, Add to routine and Another one. "Another one": the new pick opens in
+    the panel. Click a routine row, then the card again: the trial game is still where it was. "Add to
+    routine": the game is the current routine game, the card is gone. Nothing was recorded for the trial
+    (no day state on the added game until Ignore or Finished).
