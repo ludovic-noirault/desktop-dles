@@ -5,6 +5,7 @@ const GAME_PAGE_PREFIX: &str = "https://dles.gg/game/";
 // A page far larger than any real dles.gg page is a sign of something else; stop reading it.
 const MAX_BYTES: usize = 5 * 1024 * 1024;
 const TIMEOUT: Duration = Duration::from_secs(10);
+const MAX_REDIRECTS: usize = 5;
 const USER_AGENT: &str = concat!(
     "DesktopDles/",
     env!("CARGO_PKG_VERSION"),
@@ -16,12 +17,34 @@ pub struct DlesClient(reqwest::Client);
 
 impl DlesClient {
     pub fn new() -> Result<Self, reqwest::Error> {
+        install_crypto_provider();
         reqwest::Client::builder()
             .user_agent(USER_AGENT)
             .timeout(TIMEOUT)
+            .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                if attempt.previous().len() >= MAX_REDIRECTS || !is_dles_url(attempt.url()) {
+                    attempt.stop()
+                } else {
+                    attempt.follow()
+                }
+            }))
             .build()
             .map(Self)
     }
+}
+
+// reqwest is built without a TLS provider so the tree keeps one crypto stack: the ring one that
+// tauri-plugin-updater also installs.
+fn install_crypto_provider() {
+    if rustls::crypto::CryptoProvider::get_default().is_none() {
+        // Fails only if a default exists already, which was just checked.
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+}
+
+// Redirects must stay on dles.gg over https: the UI cannot choose a URL, and the site must not either.
+fn is_dles_url(url: &reqwest::Url) -> bool {
+    url.scheme() == "https" && url.host_str() == Some("dles.gg")
 }
 
 pub fn is_valid_slug(slug: &str) -> bool {
@@ -92,6 +115,16 @@ mod tests {
         for bad in ["", "Wordle", "../x", "a/b", "a b", "a?b"] {
             assert!(!is_valid_slug(bad), "{bad:?}");
         }
+    }
+
+    #[test]
+    fn redirects_stay_on_dles_over_https() {
+        let url = |s: &str| reqwest::Url::parse(s).unwrap();
+        assert!(is_dles_url(&url("https://dles.gg/game/wordle")));
+        assert!(!is_dles_url(&url("http://dles.gg/")));
+        assert!(!is_dles_url(&url("https://www.dles.gg/")));
+        assert!(!is_dles_url(&url("https://dles.gg.evil.com/")));
+        assert!(!is_dles_url(&url("https://evil.com/")));
     }
 
     #[test]

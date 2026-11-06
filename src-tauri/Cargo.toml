@@ -21,7 +21,10 @@ tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-process = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
-reqwest = { version = "0.13", default-features = false, features = ["rustls", "charset"] }
+# `rustls-no-provider` plus ring below: the default `rustls` feature would add aws-lc, a second C crypto stack
+# next to the ring one tauri-plugin-updater already links.
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 # The updater has no mobile support.
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
