@@ -19,6 +19,8 @@ a "Next game" button between them. Built with Tauri 2.
 - One shared, persistent session store for all games (Tauri default). No `data_directory`.
 - Frontend: Vite, React, TypeScript, TanStack Router in SPA mode with hash history. Not TanStack Start:
   Tauri does not support server rendering.
+- The `ui` webview has Tauri's native drag-and-drop handler disabled (HTML5 file drops for import). The
+  window-level guard in `src/main.tsx` that stops file drops from navigating it must stay.
 - Storage: SQLite through `tauri-plugin-sql`. Migrations live in `src-tauri/migrations/`. SQL uses `?`
   placeholders so the same queries run under sqlx and under Node's `node:sqlite` in tests.
 - UI copy is English, and every user-facing string lives in `src/strings.ts`.
