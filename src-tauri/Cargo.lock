@@ -865,6 +865,10 @@ name = "desktop-dles"
 version = "0.1.0"
 dependencies = [
  "adblock",
+ "block2",
+ "objc2",
+ "objc2-foundation",
+ "objc2-web-kit",
  "serde",
  "serde_json",
  "tauri",

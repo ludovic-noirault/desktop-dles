@@ -24,3 +24,11 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 # The updater has no mobile support.
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
 tauri-plugin-updater = "2"
+
+# WebKit content rule lists for the game webviews. Default features are off: they enable every
+# class of the framework and pull in JavaScriptCore and Security bindings this app does not use.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+block2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSError"] }
+objc2-web-kit = { version = "0.3", default-features = false, features = ["std", "WKContentRuleList", "WKContentRuleListStore", "WKUserContentController", "block2"] }

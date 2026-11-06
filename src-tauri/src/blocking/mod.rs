@@ -1,5 +1,6 @@
-#[allow(dead_code)] // wired up by the platform modules in Tasks 4 and 5
 pub mod filters;
+#[cfg(target_os = "macos")]
+mod macos;
 
 use std::collections::HashSet;
 use std::sync::{Condvar, Mutex};
@@ -24,7 +25,7 @@ impl Bypass {
         self.0.lock().unwrap().remove(label);
     }
 
-    #[allow(dead_code)] // read by the platform modules in Tasks 4 and 5
+    #[cfg_attr(not(windows), allow(dead_code))] // only the Windows request handler reads it
     pub fn contains(&self, label: &str) -> bool {
         self.0.lock().unwrap().contains(label)
     }
@@ -63,22 +64,38 @@ impl Readiness {
 
 pub static READY: Readiness = Readiness::new();
 
-/// Starts the platform compilation of the rules. Platform modules (Tasks 4 and 5) call
-/// `READY.mark_ready()` themselves; until then every platform is ready at once.
-pub fn init(_app: &AppHandle) {
-    READY.mark_ready();
+/// Starts the platform compilation of the rules. The platform module calls `READY.mark_ready()`
+/// once every list is resolved; a platform without one is ready at once.
+pub fn init(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    macos::init(app);
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        READY.mark_ready();
+    }
 }
 
 /// Installs the rules on a game webview. Failures are logged, never returned: a game that
 /// cannot be filtered must still open.
-pub fn attach(_webview: &Webview) {
+pub fn attach(webview: &Webview) {
     if !READY.wait(ATTACH_TIMEOUT) {
         eprintln!("content blocking rules not ready after {ATTACH_TIMEOUT:?}, opening unfiltered");
+        return;
     }
+    #[cfg(target_os = "macos")]
+    macos::attach(webview);
+    #[cfg(not(target_os = "macos"))]
+    let _ = webview;
 }
 
-/// Removes the rules from a game webview. Nothing to remove until the platform modules exist.
-pub fn detach(_webview: &Webview) {}
+/// Removes the rules from a game webview, so its next navigation loads unfiltered.
+pub fn detach(webview: &Webview) {
+    #[cfg(target_os = "macos")]
+    macos::detach(webview);
+    #[cfg(not(target_os = "macos"))]
+    let _ = webview;
+}
 
 #[cfg(test)]
 mod tests {
