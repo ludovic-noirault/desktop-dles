@@ -94,8 +94,9 @@ button.primary {
 }
 .sidebar-resizer {
   flex: none;
+  /* Inside the aside only: the game webview above the ui covers anything past its edge. */
   width: 6px;
-  margin-left: -3px;
+  margin-left: -6px;
   z-index: 1;
   cursor: col-resize;
   touch-action: none;

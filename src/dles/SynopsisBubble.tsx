@@ -1,6 +1,8 @@
+import type { Ref } from "react";
 import { strings } from "../strings";
 
 type Props = {
+  ref?: Ref<HTMLDivElement>;
   id: string;
   name: string;
   synopsis: string;
@@ -12,9 +14,10 @@ type Props = {
 
 // Lives inside the aside: game webviews are drawn above the ui webview, so
 // anything over the game panel would be hidden.
-export function SynopsisBubble({ id, name, synopsis, top, above }: Props) {
+export function SynopsisBubble({ ref, id, name, synopsis, top, above }: Props) {
   return (
     <div
+      ref={ref}
       id={id}
       role="tooltip"
       className={above ? "synopsis-bubble above" : "synopsis-bubble"}

@@ -1,5 +1,5 @@
 import { Plus, Shuffle, Sparkles } from "lucide-react";
-import type { Ref } from "react";
+import { type Ref, useEffect, useRef } from "react";
 import { IconButton } from "../app/IconButton";
 import type { StoredPick } from "../storage/pickRepo";
 import { strings } from "../strings";
@@ -25,6 +25,16 @@ export function PickCard({
   onFocusIn,
   onFocusOut,
 }: Props) {
+  const anotherRef = useRef<HTMLButtonElement>(null);
+  // A disabled button drops focus, so keyboard users would land on the body
+  // after "Another one". Remember it had focus and give it back when busy ends.
+  const refocus = useRef(false);
+  useEffect(() => {
+    if (busy || !refocus.current) return;
+    refocus.current = false;
+    anotherRef.current?.focus();
+  }, [busy]);
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: hover and focus-within only toggle a tooltip, the card has no action of its own
     <section
@@ -53,9 +63,13 @@ export function PickCard({
         <IconButton
           label={strings.pick.another}
           icon={Shuffle}
+          ref={anotherRef}
           disabled={busy}
           aria-describedby={describedBy}
-          onClick={() => onAnother()}
+          onClick={(e) => {
+            refocus.current = document.activeElement === e.currentTarget;
+            onAnother();
+          }}
         />
       </div>
     </section>

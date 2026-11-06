@@ -34,7 +34,12 @@ pub fn run() {
     ];
     tauri::Builder::default()
         .manage(blocking::Bypass::default())
-        .manage(dles::DlesClient::new().expect("failed to build the dles.gg HTTP client"))
+        // The daily pick is optional: a client that cannot be built must not stop the app.
+        .manage(
+            dles::DlesClient::new()
+                .map_err(|e| eprintln!("dles.gg client unavailable: {e}"))
+                .ok(),
+        )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())

@@ -12,6 +12,8 @@ const USER_AGENT: &str = concat!(
     " (+https://github.com/ludovic-noirault/desktop-dles)"
 );
 
+const UNAVAILABLE: &str = "dles.gg client unavailable";
+
 /// Shared HTTP client, built once. The UI never sends a URL: the commands below build them.
 pub struct DlesClient(reqwest::Client);
 
@@ -96,16 +98,16 @@ async fn fetch_game_page(client: &DlesClient, slug: &str) -> Result<String, Stri
 }
 
 #[tauri::command]
-pub async fn dles_catalog(client: tauri::State<'_, DlesClient>) -> Result<String, String> {
-    fetch_catalog(&client).await
+pub async fn dles_catalog(client: tauri::State<'_, Option<DlesClient>>) -> Result<String, String> {
+    fetch_catalog(client.as_ref().ok_or(UNAVAILABLE)?).await
 }
 
 #[tauri::command]
 pub async fn dles_game_page(
-    client: tauri::State<'_, DlesClient>,
+    client: tauri::State<'_, Option<DlesClient>>,
     slug: String,
 ) -> Result<String, String> {
-    fetch_game_page(&client, &slug).await
+    fetch_game_page(client.as_ref().ok_or(UNAVAILABLE)?, &slug).await
 }
 
 #[cfg(test)]

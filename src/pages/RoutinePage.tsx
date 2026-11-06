@@ -8,7 +8,7 @@ import {
   ShieldOff,
   SkipForward,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { IconButton } from "../app/IconButton";
 import { useRoutine } from "../app/RoutineProvider";
 import { SidebarResizer } from "../app/SidebarResizer";
@@ -63,7 +63,11 @@ export function RoutinePage() {
     key: string;
     top: number;
     above: boolean;
+    // Top of the anchor, where the bubble goes once flipped above it.
+    anchorTop: number;
   } | null>(null);
+  const asideRef = useRef<HTMLElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
   const game = state.order[state.current];
   const total = state.order.length;
   const currentStatus = game ? state.statuses.get(game.id) : undefined;
@@ -87,22 +91,54 @@ export function RoutinePage() {
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
-    // One update per frame: gameViews serialises every call, so a drag
-    // would otherwise queue one IPC round trip per pixel.
+    // One call in flight, latest bounds win: gameViews serialises every call,
+    // so a drag would otherwise queue one IPC round trip per frame whenever a
+    // round trip outlasts a frame.
     let frame = 0;
+    let inFlight = false;
+    let pending: PanelBounds | null = null;
+    let cancelled = false;
+    const send = (bounds: PanelBounds) => {
+      inFlight = true;
+      setGameBounds(bounds)
+        .catch(console.error)
+        .finally(() => {
+          inFlight = false;
+          if (pending && !cancelled) {
+            const next = pending;
+            pending = null;
+            send(next);
+          }
+        });
+    };
     const observer = new ResizeObserver(() => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        setGameBounds(boundsOf(panel)).catch(console.error);
+        const bounds = boundsOf(panel);
+        if (inFlight) pending = bounds;
+        else send(bounds);
       });
     });
     observer.observe(panel);
     return () => {
+      cancelled = true;
+      pending = null;
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
   }, []);
+
+  // A row near the bottom of a scrolled list would push its bubble out of the
+  // aside: flip it above the row once its real height is known.
+  useLayoutEffect(() => {
+    const aside = asideRef.current;
+    const el = bubbleRef.current;
+    if (!bubble || bubble.above || !aside || !el) return;
+    if (el.offsetTop + el.offsetHeight > aside.scrollTop + aside.clientHeight) {
+      setBubble({ ...bubble, above: true, top: bubble.anchorTop });
+    }
+  }, [bubble]);
 
   useEffect(() => {
     const onResize = () => setWindowWidth(window.innerWidth);
@@ -141,6 +177,7 @@ export function RoutinePage() {
       key,
       top: above ? el.offsetTop : el.offsetTop + el.offsetHeight,
       above,
+      anchorTop: el.offsetTop,
     });
   const hideBubble = () => setBubble(null);
 
@@ -148,7 +185,7 @@ export function RoutinePage() {
 
   return (
     <div className="routine">
-      <aside style={{ width }}>
+      <aside ref={asideRef} style={{ width }}>
         <h2>{strings.aside.title}</h2>
         <ol>
           {state.order.map((g, i) => {
@@ -213,6 +250,7 @@ export function RoutinePage() {
         )}
         {bubble && bubbleText?.synopsis && (
           <SynopsisBubble
+            ref={bubbleRef}
             id={BUBBLE_ID}
             name={bubbleText.name}
             synopsis={bubbleText.synopsis}

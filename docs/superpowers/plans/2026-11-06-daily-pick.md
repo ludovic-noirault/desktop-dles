@@ -385,7 +385,7 @@ git commit -m "feat: show the pick of the day and hover synopses"
 
 - [x] **Step 3: Run every gate of `docs/agents/verify.md`.**
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add AGENTS.md docs/superpowers/plans/2026-11-06-daily-pick.md
