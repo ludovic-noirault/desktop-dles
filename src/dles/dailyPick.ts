@@ -92,6 +92,34 @@ export function createDailyPick(deps: DlesDeps) {
     return catalog ? draw(day, routine, catalog) : null;
   }
 
+  // A game page that failed is not requested again before the next launch (a
+  // new instance), so leaving and re-entering the routine page never retries.
+  const failedSlugs = new Set<string>();
+  let fillChain: Promise<unknown> = Promise.resolve();
+  async function fillMissing(
+    routine: Game[],
+    day: string,
+  ): Promise<Map<string, GameInfo>> {
+    const known = await listInfo(db);
+    // The catalog is only needed to find a slug for a game we know nothing about.
+    const missing = routine.some((game) => {
+      const key = gameUrlKey(game.url);
+      return key !== null && !known.has(key);
+    });
+    if (!missing) return known;
+    const catalog = await catalogFor(day);
+    if (!catalog) return known;
+    const targets = synopsisTargets(routine, catalog, known).filter(
+      (game) => !failedSlugs.has(game.slug),
+    );
+    if (targets.length === 0) return known;
+    // One at a time: a page request per routine game must not burst on dles.gg.
+    for (const game of targets) {
+      if ((await fetchInfo(game, day)) === null) failedSlugs.add(game.slug);
+    }
+    return listInfo(db);
+  }
+
   return {
     load(day: string, routine: Game[]): Promise<StoredPick | null> {
       const running = loading.get(day);
@@ -118,24 +146,12 @@ export function createDailyPick(deps: DlesDeps) {
       await markPickAdded(db, day);
     },
 
-    async fillSynopses(
-      routine: Game[],
-      day: string,
-    ): Promise<Map<string, GameInfo>> {
-      const known = await listInfo(db);
-      // The catalog is only needed to find a slug for a game we know nothing about.
-      const missing = routine.some((game) => {
-        const key = gameUrlKey(game.url);
-        return key !== null && !known.has(key);
-      });
-      if (!missing) return known;
-      const catalog = await catalogFor(day);
-      if (!catalog) return known;
-      const targets = synopsisTargets(routine, catalog, known);
-      if (targets.length === 0) return known;
-      // One at a time: a page request per routine game must not burst on dles.gg.
-      for (const game of targets) await fetchInfo(game, day);
-      return listInfo(db);
+    // Calls queue behind each other: one made while another runs waits for it,
+    // then recomputes what is still missing, so no page is requested twice.
+    fillSynopses(routine: Game[], day: string): Promise<Map<string, GameInfo>> {
+      const run = fillChain.then(() => fillMissing(routine, day));
+      fillChain = run.catch(() => undefined);
+      return run;
     },
   };
 }

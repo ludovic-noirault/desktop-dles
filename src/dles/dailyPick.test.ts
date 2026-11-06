@@ -254,4 +254,25 @@ describe("fillSynopses", () => {
     const { dles } = setup({ fetchCatalog: boom });
     expect((await dles.fillSynopses(routine, day)).size).toBe(1);
   });
+
+  test("overlapping calls request each page once", async () => {
+    const fetchGamePage = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      return wordlePage;
+    });
+    const { dles } = setup({ fetchGamePage });
+    await Promise.all([
+      dles.fillSynopses(routine, day),
+      dles.fillSynopses(routine, day),
+    ]);
+    expect(fetchGamePage).toHaveBeenCalledTimes(1);
+  });
+
+  test("a failed page is not requested again on the same instance", async () => {
+    const fetchGamePage = vi.fn(boom);
+    const { dles } = setup({ fetchGamePage });
+    await dles.fillSynopses(routine, day);
+    await dles.fillSynopses(routine, day);
+    expect(fetchGamePage).toHaveBeenCalledTimes(1);
+  });
 });
