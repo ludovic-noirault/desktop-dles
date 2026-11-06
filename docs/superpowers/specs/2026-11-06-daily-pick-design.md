@@ -12,6 +12,8 @@ Ludo reads its synopsis and either adds it to his routine or asks for another on
 appears when he hovers a game of his routine, so he can remember what a game is about.
 
 The sidebar also becomes resizable, so the bubble has room and a game that needs more width can get it.
+Two smaller changes ride along in the same pull request: games are reordered in Settings by dragging a
+handle instead of arrow buttons, and the app's buttons become icons, with their label on hover.
 
 It is backlog item 5 of `2026-11-03-mvp-design.md` ("Daily recommendation"). That spec's backlog is
 updated to point here. Merging it releases v0.7.0.
@@ -29,7 +31,7 @@ updated to point here. Merging it releases v0.7.0.
 - The synopsis also shows on hover for the games of his routine.
 - Layout: option C of the brainstorming mockups. The card sits at the bottom of the sidebar, between the
   routine list and the day counters. It shows the label "Pick of the day", the game's name, its category,
-  and two labelled buttons, "+ Add to routine" (primary) and "↻ Another one".
+  and two buttons, "Add to routine" (primary) and "Another one". They are icon buttons, see below.
 - Agreed after it was proposed (2026-11-06):
   - The pick is drawn from the whole catalog, every category, no filter.
   - A game removed from the routine can be picked again.
@@ -52,6 +54,19 @@ updated to point here. Merging it releases v0.7.0.
   - Ludo drags the border between the sidebar and the game. The game page follows live.
   - The width is saved and restored at the next launch.
   - Minimum about 180px, maximum about half the window. A double-click on the border restores 220px.
+- Same pull request, same release (2026-11-06):
+  - Settings › My games: the up and down arrows are replaced by a drag handle on the left of each row.
+    Dragging the row up or down reorders the games.
+  - Icons replace the text of the app's action buttons. The label shows on hover.
+  - Agreed after it was proposed:
+    - Icon set: Lucide. Game panel: Reload (rotate-cw), Reload without blocking (shield-off), Ignore
+      (skip-forward), Finished (check). Settings: Edit (pencil), Remove (trash-2), Import (log-in), Export
+      (log-out), Add (plus), drag handle (grip-vertical). Sidebar states: to do (circle), finished
+      (circle-check), ignored (circle-minus). Pick card: Add to routine (plus), Another one (shuffle).
+    - Every icon button keeps an accessible name, as the arrows have today.
+    - The handle works from the keyboard: focus it, then the up and down arrow keys move the game.
+    - Buttons that confirm a choice keep their text: Save and Cancel when editing a game, the import and
+      export popups, the startup screen, the update offer, Settings › Updates.
 
 ## Goals
 
@@ -70,7 +85,12 @@ updated to point here. Merging it releases v0.7.0.
 6. The border between the sidebar and the game panel can be dragged to resize the sidebar, within the
    limits above. The game page resizes with it, without reloading. The width survives a restart. A
    double-click on the border restores the default width.
-7. Nothing on the page waits for dles.gg. The routine works the same with dles.gg down or slow.
+7. Settings › My games: each row has a drag handle and no arrow buttons. Dragging a row by its handle and
+   dropping it elsewhere saves the new order, which the routine uses. With the handle focused, the up and
+   down arrow keys move the game one place and keep the focus on its handle.
+8. The buttons listed in "Decided by Ludo" show their icon instead of their text. Hovering one shows its
+   label. A screen reader announces the same label.
+9. Nothing on the page waits for dles.gg. The routine works the same with dles.gg down or slow.
 
 ## Non-goals
 
@@ -130,6 +150,17 @@ updated to point here. Merging it releases v0.7.0.
   frame if they do not. While dragging, the pointer moves over the game webview, which takes mouse events:
   the plan finds a way to keep the drag going (for example pointer capture on the handle) and checks it.
 - The sidebar width is stored in the existing `settings` table, like `shuffle`.
+- Icons: `lucide-react` as the one new frontend dependency, imported icon by icon so the bundle only carries
+  the icons used. Icons are `aria-hidden`; the button carries the label through `aria-label`, from
+  `src/strings.ts`.
+- Hover labels: the label must show above the game page. Buttons in the game panel header sit right above
+  the game webview. The plan first checks the native `title` tooltip on macOS. If it is drawn under the
+  game webview, the label is drawn in HTML inside the header strip, to the left of the button. Labels in the
+  sidebar and in Settings have no such problem.
+- Drag to reorder: no drag-and-drop library. Pointer events on the handle, with pointer capture. Not HTML5
+  drag and drop, since the `ui` webview's drop handling is reserved for file import (`AGENTS.md`). The order
+  is saved once on drop through `saveOrder` (`src/storage/gamesRepo.ts`); `moveGame` in
+  `src/routine/routine.ts` gives way to a pure "move from index to index" function written test-first.
 - Every URL taken from dles.gg goes through `isValidGameUrl` (`src/routine/routine.ts`) before it can be
   picked. A catalog entry with a non-`https://` URL is skipped.
 - Pure logic (catalog parsing, URL matching, drawing a pick, the pick's state for the day) is written
@@ -178,6 +209,8 @@ updated to point here. Merging it releases v0.7.0.
 - Component split, and how the card reuses the sidebar's existing styles.
 - Hover delay before the bubble shows.
 - Look of the resize handle and its hover cursor; keyboard resizing on the handle if it comes cheap.
+- Look of the row while dragged and of the drop position marker in Settings.
+- Icon size and stroke width, within the existing button styles.
 - Where the catalog and synopsis parsing runs, Rust or TypeScript, within the Constraints.
 
 ## Manual check (macOS)
@@ -199,3 +232,7 @@ updated to point here. Merging it releases v0.7.0.
 10. Drag the sidebar border wider, then narrower: the game page follows without reloading, the limits hold,
     the drag does not stop when the pointer crosses the game page. Restart: same width. Double-click the
     border: back to 220px.
+11. Settings: drag a game by its handle from the bottom to the top. The new order shows in Settings and in
+    the routine, and survives a restart. Focus a handle, press the down arrow: the game moves one place.
+12. Every icon button of the game panel, the sidebar, the card and Settings shows its label on hover, and
+    the label is not hidden under the game page.
