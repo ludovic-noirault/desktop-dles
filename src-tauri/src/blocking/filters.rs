@@ -2,6 +2,7 @@
 //! Pure logic: nothing here touches a webview, and nothing is ever injected into a game page.
 
 pub struct FilterList {
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))] // names the macOS rule lists
     pub name: &'static str,
     pub text: &'static str,
 }

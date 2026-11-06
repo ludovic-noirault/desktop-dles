@@ -1,6 +1,8 @@
 pub mod filters;
 #[cfg(target_os = "macos")]
 mod macos;
+#[cfg(windows)]
+mod windows;
 
 use std::collections::HashSet;
 use std::sync::{Condvar, Mutex};
@@ -69,7 +71,9 @@ pub static READY: Readiness = Readiness::new();
 pub fn init(app: &AppHandle) {
     #[cfg(target_os = "macos")]
     macos::init(app);
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    windows::init(app);
+    #[cfg(not(any(target_os = "macos", windows)))]
     {
         let _ = app;
         READY.mark_ready();
@@ -85,7 +89,9 @@ pub fn attach(webview: &Webview) {
     }
     #[cfg(target_os = "macos")]
     macos::attach(webview);
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(windows)]
+    windows::attach(webview);
+    #[cfg(not(any(target_os = "macos", windows)))]
     let _ = webview;
 }
 
@@ -93,6 +99,7 @@ pub fn attach(webview: &Webview) {
 pub fn detach(webview: &Webview) {
     #[cfg(target_os = "macos")]
     macos::detach(webview);
+    // Nothing to remove on Windows: the request handler reads `Bypass` on every request.
     #[cfg(not(target_os = "macos"))]
     let _ = webview;
 }

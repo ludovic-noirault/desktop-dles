@@ -877,6 +877,8 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-sql",
  "tauri-plugin-updater",
+ "webview2-com",
+ "windows",
 ]
 
 [[package]]

@@ -32,3 +32,10 @@ objc2 = "0.6"
 block2 = "0.6"
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSError"] }
 objc2-web-kit = { version = "0.3", default-features = false, features = ["std", "WKContentRuleList", "WKContentRuleListStore", "WKUserContentController", "block2"] }
+
+# WebView2 request filtering for the game webviews. Same majors as wry 0.57.1, so the COM types are the
+# ones `PlatformWebview::controller()` and `environment()` return. Only `windows::core` is used, which
+# needs no feature.
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39"
+windows = "0.62"
