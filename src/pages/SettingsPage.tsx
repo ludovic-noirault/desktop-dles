@@ -4,6 +4,7 @@ import { closeGame } from "../games/gameViews";
 import { dayKey } from "../routine/day";
 import { isValidGameUrl, moveGame } from "../routine/routine";
 import type { Game } from "../routine/types";
+import { ExportDialog } from "../sharing/ExportDialog";
 import type { Db } from "../storage/db";
 import {
   addGame,
@@ -28,6 +29,9 @@ export function SettingsPage() {
   const editNameInput = useRef<HTMLInputElement>(null);
   const editButtons = useRef(new Map<number, HTMLButtonElement>());
   const lastEdited = useRef<number | null>(null);
+
+  const [exporting, setExporting] = useState(false);
+  const exportButton = useRef<HTMLButtonElement>(null);
 
   const [busy, setBusy] = useState(false);
   // The ref blocks a second click in the same tick, before `busy` re-renders.
@@ -101,7 +105,19 @@ export function SettingsPage() {
 
   return (
     <main className="settings">
-      <h2>{strings.settings.title}</h2>
+      <div className="settings-head">
+        <h2 className="settings-title">{strings.settings.title}</h2>
+        {/* Import arrives with the import dialog. */}
+        <button type="button">{strings.share.import}</button>
+        <button
+          type="button"
+          ref={exportButton}
+          disabled={games.length === 0}
+          onClick={() => setExporting(true)}
+        >
+          {strings.share.export}
+        </button>
+      </div>
       <ul>
         {games.map((g, i) => (
           <li key={g.id}>
@@ -230,6 +246,16 @@ export function SettingsPage() {
       </label>
 
       <UpdateSection />
+
+      {exporting && (
+        <ExportDialog
+          games={games}
+          onClose={() => {
+            setExporting(false);
+            exportButton.current?.focus();
+          }}
+        />
+      )}
     </main>
   );
 }

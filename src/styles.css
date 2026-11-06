@@ -310,3 +310,66 @@ button.link {
 .update-section .actions {
   margin-top: 0;
 }
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.settings-title {
+  margin: 0 auto 0 0;
+}
+
+.export-dialog {
+  width: min(28rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: inherit;
+  background: Canvas;
+}
+.export-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.export-dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+.export-dialog h3 {
+  margin: 0 0 0.25rem;
+}
+.export-dialog .hint {
+  margin: 0 0 0.5rem;
+  opacity: 0.75;
+}
+.export-dialog .choices {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.export-dialog label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.export-dialog input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+.export-dialog .all {
+  font-weight: 600;
+}
+.export-dialog .error {
+  margin: 0.5rem 0 0;
+  color: #c0392b;
+}
+.export-dialog .footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

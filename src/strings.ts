@@ -34,6 +34,16 @@ export const strings = {
     editGame: (name: string) => `Edit ${name}`,
     remove: (name: string) => `Remove ${name}`,
   },
+  share: {
+    import: "Import…",
+    export: "Export…",
+    exportTitle: "Export games",
+    exportHint: "Pick the games to put in the file.",
+    all: (n: number, total: number) => `All (${n} of ${total})`,
+    saveFile: "Save file…",
+    exportFailed: "Could not save the file.",
+    cancel: "Cancel",
+  },
   startup: {
     starting: "Starting…",
     offlineTitle: "No connection",
