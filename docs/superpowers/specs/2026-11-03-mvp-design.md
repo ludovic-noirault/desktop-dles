@@ -50,8 +50,11 @@ in the MVP (see Constraints).
 
 The MVP fails, even if it works, if any of these happen:
 
-- The app injects its own script into a game site: no custom initialization script, no `eval`. The
-  bridge that Tauri itself adds to every webview is accepted, as long as the next point holds.
+- The app runs its own code in a game page: no initialization script, no `eval`, no script injection API,
+  no browser extension. Stopping a game page from loading a resource, and on macOS hiding elements through
+  WebKit's declarative content rules, is allowed (see `2026-11-06-content-blocking-design.md`); neither
+  gives the page any channel to the app. The bridge that Tauri itself adds to every webview is accepted,
+  as long as the next point holds.
 - A game page can call the app's IPC. Game webviews match no capability, so every IPC call from them is
   refused.
 - One game that refuses to load, or loads slowly, blocks the routine. The user must still be able to move
