@@ -121,9 +121,19 @@ export function RoutinePage() {
           <span>{strings.routine.position(state.current + 1, total)}</span>
           <button
             type="button"
-            onClick={() => reloadGame(game.id, game.url).catch(console.error)}
+            onClick={() =>
+              reloadGame(game.id, game.url, true).catch(console.error)
+            }
           >
             {strings.routine.reload}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              reloadGame(game.id, game.url, false).catch(console.error)
+            }
+          >
+            {strings.routine.reloadUnblocked}
           </button>
           <button
             type="button"

@@ -28,8 +28,11 @@ export const setGameBounds = (bounds: PanelBounds): Promise<void> =>
 export const hideGames = (): Promise<void> =>
   ordered(() => invoke("hide_games"));
 
-export const reloadGame = (id: number, url: string): Promise<void> =>
-  ordered(() => invoke("reload_game", { id, url }));
+export const reloadGame = (
+  id: number,
+  url: string,
+  blocking: boolean,
+): Promise<void> => ordered(() => invoke("reload_game", { id, url, blocking }));
 
 export const closeGame = (id: number): Promise<void> =>
   ordered(() => invoke("close_game", { id }));
