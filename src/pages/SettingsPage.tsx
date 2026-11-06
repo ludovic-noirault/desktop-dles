@@ -5,6 +5,7 @@ import { dayKey } from "../routine/day";
 import { isValidGameUrl, moveGame } from "../routine/routine";
 import type { Game } from "../routine/types";
 import { ExportDialog } from "../sharing/ExportDialog";
+import { ImportDialog } from "../sharing/ImportDialog";
 import type { Db } from "../storage/db";
 import {
   addGame,
@@ -30,6 +31,8 @@ export function SettingsPage() {
   const editButtons = useRef(new Map<number, HTMLButtonElement>());
   const lastEdited = useRef<number | null>(null);
 
+  const [importing, setImporting] = useState(false);
+  const importButton = useRef<HTMLButtonElement>(null);
   const [exporting, setExporting] = useState(false);
   const exportButton = useRef<HTMLButtonElement>(null);
 
@@ -107,8 +110,13 @@ export function SettingsPage() {
     <main className="settings">
       <div className="settings-head">
         <h2 className="settings-title">{strings.settings.title}</h2>
-        {/* Import arrives with the import dialog. */}
-        <button type="button">{strings.share.import}</button>
+        <button
+          type="button"
+          ref={importButton}
+          onClick={() => setImporting(true)}
+        >
+          {strings.share.import}
+        </button>
         <button
           type="button"
           ref={exportButton}
@@ -247,6 +255,15 @@ export function SettingsPage() {
 
       <UpdateSection />
 
+      {importing && (
+        <ImportDialog
+          games={games}
+          onClose={() => {
+            setImporting(false);
+            importButton.current?.focus();
+          }}
+        />
+      )}
       {exporting && (
         <ExportDialog
           games={games}
