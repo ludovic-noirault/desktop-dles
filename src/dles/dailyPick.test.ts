@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Game } from "../routine/types";
 import type { Db } from "../storage/db";
 import { listGames } from "../storage/gamesRepo";
-import { addSkip, getPick, listInfo, listSkips } from "../storage/pickRepo";
+import {
+  addSkip,
+  getPick,
+  listInfo,
+  listSkips,
+  savePick,
+} from "../storage/pickRepo";
 import { createTestDb } from "../storage/testDb";
 import { createDailyPick, type DlesDeps } from "./dailyPick";
 
@@ -74,10 +80,16 @@ test("a failed game page keeps the pick with name only and stores no info", asyn
 });
 
 test("concurrent loads of one day draw once and fetch the catalog once", async () => {
-  const { dles, fetchCatalog } = setup({ rng: Math.random });
+  // Without the in-flight dedupe the second draw would roll 0.999 and differ.
+  const rolls = [0, 0.999];
+  const { dles, fetchCatalog, fetchGamePage } = setup({
+    rng: () => rolls.shift() ?? 0.999,
+  });
   const [a, b] = await Promise.all([dles.load(day, []), dles.load(day, [])]);
-  expect(a?.slug).toBe(b?.slug);
+  expect(a?.slug).toBe("wordle");
+  expect(b?.slug).toBe("wordle");
   expect(fetchCatalog).toHaveBeenCalledTimes(1);
+  expect(fetchGamePage).toHaveBeenCalledTimes(1);
 });
 
 describe("another", () => {
@@ -118,6 +130,67 @@ describe("another", () => {
     expect((await dles.another(day, []))?.slug).toBe("wordle");
     expect((await listSkips(db, day)).size).toBe(0);
   });
+});
+
+test("add does nothing without a pick or once the pick is added", async () => {
+  const { dles } = setup();
+  const before = (await listGames(db)).length;
+  await dles.add(day);
+  expect(await listGames(db)).toHaveLength(before);
+  await dles.load(day, []);
+  await dles.add(day);
+  await dles.add(day);
+  expect(await listGames(db)).toHaveLength(before + 1);
+});
+
+test("a failed catalog is requested once per launch and day", async () => {
+  const fetchCatalog = vi.fn(boom);
+  const { dles } = setup({ fetchCatalog });
+  const routine: Game[] = [
+    {
+      id: 1,
+      name: "W",
+      url: "https://www.nytimes.com/games/wordle",
+      position: 0,
+    },
+  ];
+  await dles.load(day, []);
+  await dles.fillSynopses(routine, day);
+  await dles.another(day, []);
+  expect(fetchCatalog).toHaveBeenCalledTimes(1);
+});
+
+test("page fetches never overlap across calls", async () => {
+  let active = 0;
+  let max = 0;
+  const fetchGamePage = vi.fn(async () => {
+    max = Math.max(max, ++active);
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    active--;
+    return wordlePage;
+  });
+  const { dles } = setup({ fetchGamePage });
+  await savePick(db, {
+    day,
+    slug: "gone",
+    name: "Gone",
+    url: "https://gone.example/",
+    synopsis: null,
+    category: null,
+    status: "shown",
+  });
+  const routine: Game[] = [
+    {
+      id: 1,
+      name: "W",
+      url: "https://www.nytimes.com/games/wordle",
+      position: 0,
+    },
+    { id: 2, name: "G", url: "https://globle-game.com/game", position: 1 },
+  ];
+  await Promise.all([dles.fillSynopses(routine, day), dles.another(day, [])]);
+  expect(fetchGamePage).toHaveBeenCalledTimes(3);
+  expect(max).toBe(1);
 });
 
 test("add adds the game and marks the pick", async () => {
@@ -161,6 +234,13 @@ describe("fillSynopses", () => {
     expect(info.get("nytimes.com/games/wordle")?.category).toBe("Words");
     await dles.fillSynopses(routine, day);
     expect(fetchGamePage).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not touch the catalog when every routine game is known", async () => {
+    await setup().dles.fillSynopses(routine.slice(0, 1), day);
+    const { dles, fetchCatalog } = setup();
+    await dles.fillSynopses(routine.slice(0, 1), day);
+    expect(fetchCatalog).not.toHaveBeenCalled();
   });
 
   test("a page that rejects stores nothing", async () => {

@@ -34,29 +34,36 @@ export function createDailyPick(deps: DlesDeps) {
     null;
   const loading = new Map<string, Promise<StoredPick | null>>();
 
-  // Concurrent callers share one request; a failure is not kept so the next
-  // user action can retry instead of staying blind until restart.
+  // Concurrent callers share one request, and a failure stays cached for the
+  // day: one catalog request per launch and per day, the next launch retries.
   function catalogFor(day: string): Promise<CatalogGame[] | null> {
     if (catalogCache?.day !== day) {
-      const promise = fetchCatalog().then(parseCatalog);
-      catalogCache = { day, promise };
-      promise.catch(() => {
-        if (catalogCache?.promise === promise) catalogCache = null;
-      });
+      catalogCache = { day, promise: fetchCatalog().then(parseCatalog) };
     }
     return catalogCache.promise.catch(() => null);
   }
 
-  // Null info on failure: the pick stays usable with its name only.
+  // Game pages go through one queue for the whole instance, so no two page
+  // requests to dles.gg run at once whatever the caller.
+  let pageQueue: Promise<unknown> = Promise.resolve();
+  function queuedPage(slug: string): Promise<string> {
+    const run = pageQueue.then(() => fetchGamePage(slug));
+    pageQueue = run.catch(() => undefined);
+    return run;
+  }
+
+  // Null info on failure: the pick stays usable with its name only. Only the
+  // fetch and parse are forgiven; a storage error must surface.
   async function fetchInfo(game: CatalogGame, day: string) {
+    let info: GameInfo;
     try {
-      const info = parseGamePage(await fetchGamePage(game.slug));
-      const key = gameUrlKey(game.url);
-      if (key) await saveInfo(db, key, game.slug, info, day);
-      return info;
+      info = parseGamePage(await queuedPage(game.slug));
     } catch {
       return null;
     }
+    const key = gameUrlKey(game.url);
+    if (key) await saveInfo(db, key, game.slug, info, day);
+    return info;
   }
 
   async function draw(
@@ -106,7 +113,7 @@ export function createDailyPick(deps: DlesDeps) {
 
     async add(day: string): Promise<void> {
       const pick = await getPick(db, day);
-      if (!pick) return;
+      if (!pick || pick.status === "added") return;
       await addGame(db, pick.name, pick.url, day);
       await markPickAdded(db, day);
     },
@@ -116,6 +123,12 @@ export function createDailyPick(deps: DlesDeps) {
       day: string,
     ): Promise<Map<string, GameInfo>> {
       const known = await listInfo(db);
+      // The catalog is only needed to find a slug for a game we know nothing about.
+      const missing = routine.some((game) => {
+        const key = gameUrlKey(game.url);
+        return key !== null && !known.has(key);
+      });
+      if (!missing) return known;
       const catalog = await catalogFor(day);
       if (!catalog) return known;
       const targets = synopsisTargets(routine, catalog, known);
