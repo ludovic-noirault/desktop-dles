@@ -263,6 +263,9 @@ button.primary[aria-pressed="true"] {
 button[aria-pressed="true"]:not(.primary) {
   background: color-mix(in srgb, var(--accent) 22%, transparent);
 }
+button.pick-name[aria-pressed="true"] {
+  background: none;
+}
 .routine main {
   flex: 1;
   min-width: 0;

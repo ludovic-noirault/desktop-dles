@@ -57,13 +57,15 @@ export function useDailyPick() {
     };
   }, [day, hasRoutine]);
 
-  // Runs one card action; both share the guard and the busy flag.
+  // Runs one card action; both share the guard and the busy flag. Resolves to
+  // whether the action ran (false when another one was already running).
   const run = useCallback(async (action: (day: string) => Promise<void>) => {
-    if (busyRef.current) return;
+    if (busyRef.current) return false;
     busyRef.current = true;
     setBusy(true);
     try {
       await action(dayRef.current);
+      return true;
     } finally {
       busyRef.current = false;
       setBusy(false);

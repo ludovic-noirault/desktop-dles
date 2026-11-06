@@ -20,6 +20,7 @@ import { PickCard } from "../dles/PickCard";
 import { indexOfGame } from "../dles/pick";
 import { SynopsisBubble } from "../dles/SynopsisBubble";
 import { useDailyPick } from "../dles/useDailyPick";
+import { useRefocus } from "../dles/useRefocus";
 import {
   closeGame,
   hideGames,
@@ -81,6 +82,9 @@ export function RoutinePage() {
   // URL of a pick being added from the trial: select it once it is in the routine.
   const pendingSelect = useRef<string | null>(null);
   const pickUrl = pick?.url ?? null;
+  const headerAnother = useRefocus(pickBusy);
+  const orderRef = useRef(state.order);
+  orderRef.current = state.order;
   const game = state.order[state.current];
   const total = state.order.length;
   const currentStatus = game ? state.statuses.get(game.id) : undefined;
@@ -99,32 +103,35 @@ export function RoutinePage() {
     if (pickUrl === null) setTrying(false);
   }, [pickUrl]);
 
-  // After "Add to routine" from the trial, the added game becomes current.
-  useEffect(() => {
-    const url = pendingSelect.current;
-    if (!url) return;
-    const index = indexOfGame(state.order, url);
-    if (index < 0) return;
-    pendingSelect.current = null;
-    dispatch({ type: "select", index });
-  }, [state.order, dispatch]);
-
   // Never awaited: the native webview loads on its own.
   useEffect(() => {
-    if (!panelRef.current) return;
+    if (!panelRef.current) {
+      hideGames().catch(console.error);
+      return;
+    }
     if (trying && pickUrl) {
       trialUrl.current = pickUrl;
       showGame(PICK_VIEW_ID, pickUrl, boundsOf(panelRef.current)).catch(
         console.error,
       );
-    } else if (game) {
+      return;
+    }
+    // After "Add to routine" from the trial the pick is in the routine: select
+    // it now instead of showing the previous game for a frame. The render that
+    // follows shows it, so the queue is close(0) then show(added).
+    const added = pendingSelect.current;
+    const index = added ? indexOfGame(orderRef.current, added) : -1;
+    if (index >= 0) {
+      pendingSelect.current = null;
+      dispatch({ type: "select", index });
+      return;
+    }
+    if (game) {
       showGame(game.id, game.url, boundsOf(panelRef.current)).catch(
         console.error,
       );
-    } else {
-      hideGames().catch(console.error);
     }
-  }, [game, trying, pickUrl]);
+  }, [game, trying, pickUrl, dispatch]);
 
   // Separate from the effect above so switching games does not hide first.
   // gameViews runs commands in call order, so under StrictMode the last show wins.
@@ -199,10 +206,14 @@ export function RoutinePage() {
   const tryPick = () => setTrying(true);
   const addPick = () => {
     if (trying && pick) pendingSelect.current = pick.url;
-    add().catch((error) => {
-      pendingSelect.current = null;
-      console.error(error);
-    });
+    add()
+      .then((ran) => {
+        if (!ran) pendingSelect.current = null;
+      })
+      .catch((error) => {
+        pendingSelect.current = null;
+        console.error(error);
+      });
   };
 
   if (!game) {
@@ -364,8 +375,12 @@ export function RoutinePage() {
             <IconButton
               label={strings.pick.another}
               icon={Shuffle}
+              ref={headerAnother.ref}
               disabled={pickBusy}
-              onClick={() => another().catch(console.error)}
+              onClick={(e) => {
+                headerAnother.mark(e);
+                another().catch(console.error);
+              }}
             />
             <IconButton
               label={strings.pick.add}
