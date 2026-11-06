@@ -1,4 +1,5 @@
 mod blocking;
+mod dles;
 mod games;
 mod sharing;
 
@@ -27,6 +28,7 @@ pub fn run() {
     ];
     tauri::Builder::default()
         .manage(blocking::Bypass::default())
+        .manage(dles::DlesClient::new().expect("failed to build the dles.gg HTTP client"))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
@@ -41,7 +43,9 @@ pub fn run() {
             games::hide_games,
             games::reload_game,
             games::close_game,
-            sharing::export_games
+            sharing::export_games,
+            dles::dles_catalog,
+            dles::dles_game_page
         ])
         .setup(|app| {
             blocking::init(app.handle());
