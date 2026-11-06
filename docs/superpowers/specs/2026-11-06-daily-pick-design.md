@@ -106,6 +106,8 @@ updated to point here. Merging it releases v0.7.0.
     current routine game.
   - Clicking a routine row hides the trial game without closing it, as with other games.
   - The trial page is closed when the game is skipped or when the day changes.
+  - Leaving the Routine page (for Settings) closes the trial page and ends the trial, so a day change
+    while Settings is open never reopens yesterday's pick (Claude's call, after review).
 
 ## Non-goals
 
