@@ -1,4 +1,5 @@
 import type { Game } from "../routine/types";
+import type { SharedGame } from "../sharing/gamesFile";
 import type { Db } from "./db";
 
 export function listGames(db: Db): Promise<Game[]> {
@@ -22,6 +23,17 @@ export async function addGame(
     [game.name, game.url, game.position, today],
   );
   return { id: lastInsertId as number, ...game };
+}
+
+// Sequential on purpose: addGame derives each position from the previous insert.
+export async function addGames(
+  db: Db,
+  games: SharedGame[],
+  today: string,
+): Promise<void> {
+  for (const game of games) {
+    await addGame(db, game.name, game.url, today);
+  }
 }
 
 export async function updateGame(

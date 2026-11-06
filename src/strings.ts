@@ -34,6 +34,35 @@ export const strings = {
     editGame: (name: string) => `Edit ${name}`,
     remove: (name: string) => `Remove ${name}`,
   },
+  share: {
+    import: "Import…",
+    export: "Export…",
+    exportTitle: "Export games",
+    exportHint: "Pick the games to put in the file.",
+    all: (n: number, total: number) => `All (${n} of ${total})`,
+    saveFile: "Save file…",
+    exportFailed: "Could not save the file.",
+    cancel: "Cancel",
+    importTitle: "Import games",
+    importHint: "Drop a file a friend shared with you.",
+    dropHere: "Drop the .json file here",
+    chooseFile: "or choose a file…",
+    fromFile: (fileName: string, n: number) =>
+      `From ${fileName} · ${n} ${n === 1 ? "game" : "games"}`,
+    alreadyPresent: "Already in your list",
+    invalidEntry: "Invalid address",
+    missingName: "Missing name",
+    dropNeedsFile: "Save the file first, then drop it here.",
+    addGames: (n: number) => `Add ${n} ${n === 1 ? "game" : "games"}`,
+    readErrors: {
+      notGamesFile: "This is not a Desktop Dles games file.",
+      newerVersion:
+        "This file was made by a newer version of Desktop Dles. Update the app, then try again.",
+      noGames: "This file has no games in it.",
+    },
+    importFailed:
+      "Some games could not be added. Your list shows the ones that were.",
+  },
   startup: {
     starting: "Starting…",
     offlineTitle: "No connection",

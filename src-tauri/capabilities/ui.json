@@ -12,6 +12,7 @@
     "allow-hide-games",
     "allow-reload-game",
     "allow-close-game",
+    "allow-export-games",
     "sql:default",
     "sql:allow-load",
     "sql:allow-select",

@@ -8,6 +8,7 @@ fn main() {
             "hide_games",
             "reload_game",
             "close_game",
+            "export_games",
         ])),
     )
     .expect("failed to run tauri-build");

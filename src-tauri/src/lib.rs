@@ -1,5 +1,6 @@
 mod blocking;
 mod games;
+mod sharing;
 
 use tauri::webview::WebviewBuilder;
 use tauri::window::WindowBuilder;
@@ -26,6 +27,7 @@ pub fn run() {
     ];
     tauri::Builder::default()
         .manage(blocking::Bypass::default())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(
@@ -38,7 +40,8 @@ pub fn run() {
             games::set_game_bounds,
             games::hide_games,
             games::reload_game,
-            games::close_game
+            games::close_game,
+            sharing::export_games
         ])
         .setup(|app| {
             blocking::init(app.handle());
@@ -52,7 +55,11 @@ pub fn run() {
                 .inner_size(WINDOW_WIDTH, WINDOW_HEIGHT)
                 .build()?;
             window.add_child(
-                WebviewBuilder::new("ui", WebviewUrl::App(Default::default())).auto_resize(),
+                // Native drag and drop is off on `ui` only: HTML5 file drops need that on Windows,
+                // and the page then reads the dropped `File` itself, with no IPC.
+                WebviewBuilder::new("ui", WebviewUrl::App(Default::default()))
+                    .auto_resize()
+                    .disable_drag_drop_handler(),
                 LogicalPosition::new(0.0, 0.0),
                 LogicalSize::new(WINDOW_WIDTH, WINDOW_HEIGHT),
             )?;

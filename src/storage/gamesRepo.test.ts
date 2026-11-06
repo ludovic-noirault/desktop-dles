@@ -4,6 +4,7 @@ import { listDayRows, listLifetimes, setDayStatus } from "./dayRepo";
 import type { Db } from "./db";
 import {
   addGame,
+  addGames,
   getShuffle,
   listGames,
   removeGame,
@@ -96,4 +97,22 @@ test("shuffle defaults to false and persists", async () => {
   expect(await getShuffle(db)).toBe(false);
   await setShuffle(db, true);
   expect(await getShuffle(db)).toBe(true);
+});
+
+test("addGames appends in the given order with today as added day", async () => {
+  await addGames(
+    db,
+    [
+      { name: "Framed", url: "https://framed.wtf" },
+      { name: "Connections", url: "https://www.nytimes.com/games/connections" },
+    ],
+    "2026-11-06",
+  );
+  const games = await listGames(db);
+  expect(games.slice(-2).map((g) => [g.name, g.position])).toEqual([
+    ["Framed", 4],
+    ["Connections", 5],
+  ]);
+  const lifetimes = await listLifetimes(db);
+  expect(lifetimes.filter((l) => l.addedDay === "2026-11-06")).toHaveLength(2);
 });
