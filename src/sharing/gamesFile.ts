@@ -29,7 +29,7 @@ const asString = (value: unknown): string =>
 export function parseGamesFile(text: string): ReadResult {
   let data: unknown;
   try {
-    data = JSON.parse(text.replace(/^﻿/, ""));
+    data = JSON.parse(text.replace(/^\uFEFF/, ""));
   } catch {
     return { ok: false, error: "notGamesFile" };
   }
@@ -58,7 +58,12 @@ export function parseGamesFile(text: string): ReadResult {
 // The size check comes first so an oversized file is never read into memory.
 export async function readGamesFile(file: Blob): Promise<ReadResult> {
   if (file.size > MAX_FILE_BYTES) return { ok: false, error: "notGamesFile" };
-  return parseGamesFile(await file.text());
+  try {
+    return parseGamesFile(await file.text());
+  } catch {
+    // A file deleted or locked after the pick rejects here.
+    return { ok: false, error: "notGamesFile" };
+  }
 }
 
 export function classifyEntries(

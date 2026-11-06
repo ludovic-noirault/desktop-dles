@@ -75,7 +75,7 @@ test("a file with no games is noGames", () => {
 
 test("parses a file that starts with a byte order mark", () => {
   expect(
-    parseGamesFile(`﻿${file([{ name: "A", url: "https://a.example" }])}`),
+    parseGamesFile(`\uFEFF${file([{ name: "A", url: "https://a.example" }])}`),
   ).toMatchObject({ ok: true });
 });
 
@@ -94,6 +94,17 @@ test("readGamesFile reads a Blob", async () => {
   ).toEqual({
     ok: true,
     entries: [{ name: "A", url: "https://a.example" }],
+  });
+});
+
+test("readGamesFile reports a file that cannot be read", async () => {
+  const unreadable = {
+    size: 10,
+    text: () => Promise.reject(new Error("gone")),
+  } as unknown as Blob;
+  expect(await readGamesFile(unreadable)).toEqual({
+    ok: false,
+    error: "notGamesFile",
   });
 });
 
