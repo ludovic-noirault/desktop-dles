@@ -59,3 +59,16 @@ export function synopsisTargets(
   }
   return targets;
 }
+
+// Adds the pick's own info to the synopsis map, without touching the input.
+export function withPickInfo(
+  info: ReadonlyMap<string, GameInfo>,
+  pick: StoredPick | null,
+): ReadonlyMap<string, GameInfo> {
+  const key = pick && gameUrlKey(pick.url);
+  if (!pick || !key || !pick.synopsis) return info;
+  return new Map(info).set(key, {
+    synopsis: pick.synopsis,
+    category: pick.category,
+  });
+}

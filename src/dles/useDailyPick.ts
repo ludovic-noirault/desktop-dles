@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getDb, useRoutine } from "../app/RoutineProvider";
 import type { StoredPick } from "../storage/pickRepo";
-import { type GameInfo, gameUrlKey } from "./catalog";
+import type { GameInfo } from "./catalog";
 import { fetchCatalogHtml, fetchGamePageHtml } from "./client";
 import { createDailyPick } from "./dailyPick";
-import { visiblePick } from "./pick";
+import { visiblePick, withPickInfo } from "./pick";
 
 // One instance per app session: it owns the per-day catalog cache and the
 // page request queue. Lazy because the database opens asynchronously.
@@ -20,18 +20,6 @@ function dailyPick() {
   return instance;
 }
 
-function withPickInfo(
-  info: ReadonlyMap<string, GameInfo>,
-  pick: StoredPick | null,
-): ReadonlyMap<string, GameInfo> {
-  const key = pick && gameUrlKey(pick.url);
-  if (!pick || !key || !pick.synopsis) return info;
-  return new Map(info).set(key, {
-    synopsis: pick.synopsis,
-    category: pick.category,
-  });
-}
-
 export function useDailyPick() {
   const { state, games, refresh } = useRoutine();
   const day = state.day;
@@ -41,8 +29,17 @@ export function useDailyPick() {
   // Read at call time so a change of routine does not redraw the pick.
   const gamesRef = useRef(games);
   gamesRef.current = games;
+  const dayRef = useRef(day);
+  dayRef.current = day;
+  // Set synchronously before any await so two clicks in one frame run once.
+  const busyRef = useRef(false);
+  const hasRoutine = games.length > 0;
 
   useEffect(() => {
+    // Yesterday's pick must not show while today's loads.
+    setStored(null);
+    // The pick is for people who already have a routine.
+    if (!hasRoutine) return;
     let cancelled = false;
     (async () => {
       const api = await dailyPick();
@@ -58,26 +55,47 @@ export function useDailyPick() {
     return () => {
       cancelled = true;
     };
-  }, [day]);
+  }, [day, hasRoutine]);
 
-  const add = useCallback(async () => {
-    const api = await dailyPick();
-    await api.add(day);
-    await refresh();
-  }, [day, refresh]);
-
-  const another = useCallback(async () => {
+  // Runs one card action; both share the guard and the busy flag.
+  const run = useCallback(async (action: (day: string) => Promise<void>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     try {
-      const api = await dailyPick();
-      const next = await api.another(day, gamesRef.current);
-      setStored(next);
-      setInfo((prev) => withPickInfo(prev, next));
+      await action(dayRef.current);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
-  }, [day]);
+  }, []);
 
-  const pick = useMemo(() => visiblePick(stored, games), [stored, games]);
+  const add = useCallback(
+    () =>
+      run(async (startDay) => {
+        const api = await dailyPick();
+        await api.add(startDay);
+        await refresh();
+      }),
+    [run, refresh],
+  );
+
+  const another = useCallback(
+    () =>
+      run(async (startDay) => {
+        const api = await dailyPick();
+        const next = await api.another(startDay, gamesRef.current);
+        // The day changed meanwhile: that result belongs to a past day.
+        if (dayRef.current !== startDay) return;
+        setStored(next);
+        setInfo((prev) => withPickInfo(prev, next));
+      }),
+    [run],
+  );
+
+  const pick = useMemo(
+    () => visiblePick(stored?.day === day ? stored : null, games),
+    [stored, day, games],
+  );
   return { pick, info, busy, add, another };
 }

@@ -1,10 +1,11 @@
 import { Plus, Shuffle, Sparkles } from "lucide-react";
-import { forwardRef } from "react";
+import type { Ref } from "react";
 import { IconButton } from "../app/IconButton";
 import type { StoredPick } from "../storage/pickRepo";
 import { strings } from "../strings";
 
 type Props = {
+  ref?: Ref<HTMLElement>;
   pick: StoredPick;
   busy: boolean;
   describedBy?: string;
@@ -14,16 +15,21 @@ type Props = {
   onFocusOut(): void;
 };
 
-export const PickCard = forwardRef<HTMLElement, Props>(function PickCard(
-  { pick, busy, describedBy, onAdd, onAnother, onFocusIn, onFocusOut },
+export function PickCard({
   ref,
-) {
+  pick,
+  busy,
+  describedBy,
+  onAdd,
+  onAnother,
+  onFocusIn,
+  onFocusOut,
+}: Props) {
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: hover and focus-within only toggle a tooltip, the card has no action of its own
     <section
       ref={ref}
       className="pick-card"
-      aria-describedby={describedBy}
       onMouseEnter={onFocusIn}
       onMouseLeave={onFocusOut}
       onFocus={onFocusIn}
@@ -41,15 +47,17 @@ export const PickCard = forwardRef<HTMLElement, Props>(function PickCard(
           icon={Plus}
           className="primary"
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => onAdd()}
         />
         <IconButton
           label={strings.pick.another}
           icon={Shuffle}
           disabled={busy}
+          aria-describedby={describedBy}
           onClick={() => onAnother()}
         />
       </div>
     </section>
   );
-});
+}
