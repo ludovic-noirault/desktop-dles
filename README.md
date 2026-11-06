@@ -80,6 +80,12 @@ gh release edit "v$V" --draft=false --latest
 rm -r sigs latest.json
 ```
 
+## Sharing games
+
+Settings › My games › Export… saves the checked games to `desktop-dles-games.json`. Settings › My games
+› Import… reads such a file, dropped or chosen, and adds its games to your list, skipping the ones
+already in it.
+
 ## Content blocking
 
 Games load with ads, trackers and cookie banners filtered out, using EasyList, EasyPrivacy and the
